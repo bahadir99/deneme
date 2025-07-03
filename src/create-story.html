@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Story</title>
+    <script type="module" src="/main.js" defer></script>
+    <style>
+      html,
+      body {
+        font-size: 13px;
+      }
+      #editor-layout {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+      }
+      #blocks-canvas {
+        position: relative;
+        width: 65%;
+        min-height: 500px;
+        background: #f4f4f4;
+        border: 1px solid #ccc;
+        margin-bottom: 1em;
+        overflow: auto;
+        font-size: 1em;
+      }
+      #sidebar {
+        width: 35%;
+        min-width: 180px;
+        background: #fff;
+        border-left: 1px solid #ccc;
+        padding: 0.7em 1em 1em 1em;
+        box-sizing: border-box;
+        position: relative;
+        font-size: 1em;
+      }
+      .story-block {
+        position: absolute;
+        min-width: 120px;
+        min-height: 28px;
+        background: #fff;
+        border: 2px solid #396cd8;
+        border-radius: 6px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+        padding: 0.2em 0.7em;
+        cursor: move;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1em;
+      }
+      .block-title {
+        font-weight: bold;
+        cursor: pointer;
+        margin-bottom: 0;
+        width: 100%;
+        text-align: center;
+        font-size: 1em;
+      }
+      .sel-handle {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        background: #396cd8;
+        border-radius: 50%;
+        margin-right: 0.3em;
+        cursor: crosshair;
+        vertical-align: middle;
+        position: relative;
+      }
+      .selection-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.3em;
+        font-size: 1em;
+      }
+      .selection-row input,
+      .selection-row select {
+        font-size: 1em;
+        padding: 0.2em 0.4em;
+      }
+      .selection-row input {
+        margin-right: 0.3em;
+        width: 60px;
+      }
+      .selection-row select {
+        margin-right: 0.3em;
+      }
+      #connections-svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+      }
+      #sidebar button[type="button"],
+      #add-block-btn,
+      #cancel-story-btn {
+        font-size: 1em;
+        padding: 0.3em 0.8em;
+        border-radius: 4px;
+      }
+      #sidebar textarea,
+      #sidebar input,
+      #sidebar select {
+        font-size: 1em;
+        padding: 0.2em 0.4em;
+      }
+      #sidebar label {
+        font-size: 1em;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <h1 style="font-size: 1.3em">Create a Story</h1>
+      <div id="editor-layout">
+        <div id="blocks-canvas">
+          <svg id="connections-svg"></svg>
+        </div>
+        <div id="sidebar"></div>
+      </div>
+      <button id="add-block-btn" type="button" style="margin-top: 0.7em">
+        Add Block
+      </button>
+      <button id="cancel-story-btn" type="button" style="margin-top: 0.7em">
+        Back to Menu
+      </button>
+    </main>
+  </body>
+</html>
