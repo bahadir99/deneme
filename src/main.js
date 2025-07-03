@@ -1,4 +1,5 @@
 window.addEventListener("DOMContentLoaded", () => {
+  // Exit modal logic (should always run if present)
   const exitModal = document.getElementById("exit-modal");
   const exitYesBtn = document.getElementById("exit-yes-btn");
   const exitNoBtn = document.getElementById("exit-no-btn");
@@ -21,6 +22,23 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Main menu logic: handle Play a Story button
+  const playStoryBtn = document.getElementById('play-story-btn');
+  if (playStoryBtn) {
+    playStoryBtn.addEventListener('click', () => {
+      window.location.href = 'play.html';
+    });
+  }
+
+  // Main menu logic: handle Manage Stories button
+  const manageStoriesBtn = document.getElementById('manage-stories-btn');
+  if (manageStoriesBtn) {
+    manageStoriesBtn.addEventListener('click', () => {
+      window.location.href = 'stories.html';
+    });
+    return;
+  }
+
   const createStoryBtn = document.getElementById("create-story-btn");
   if (createStoryBtn) {
     createStoryBtn.addEventListener("click", () => {
@@ -35,6 +53,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (blocksCanvas && addBlockBtn && cancelStoryBtn && connectionsSvg) {
     let blocks = [];
+    let currentStoryTitle = null;
     let dragInfo = null;
     let selectedBlock = null; // index of selected block for sidebar
     let connectDrag = null; // { blockIdx, selIdx, startX, startY, color }
@@ -44,6 +63,27 @@ window.addEventListener("DOMContentLoaded", () => {
     const selectionColors = [
       '#396cd8', '#e67e22', '#27ae60', '#e74c3c', '#8e44ad', '#16a085', '#f39c12', '#2c3e50', '#d35400', '#7f8c8d'
     ];
+
+    // Load story if title param is present in URL
+    const params = new URLSearchParams(window.location.search);
+    const loadTitle = params.get('title');
+    if (loadTitle) {
+      window.__TAURI__.core.invoke('load_story', { title: loadTitle })
+        .then(storyJson => {
+          try {
+            blocks = JSON.parse(storyJson);
+            currentStoryTitle = loadTitle;
+            renderBlocks();
+            renderSidebar();
+            alert('Loaded story: ' + loadTitle);
+          } catch (e) {
+            alert('Failed to parse loaded story: ' + e);
+          }
+        })
+        .catch(e => {
+          alert('Failed to load story: ' + e);
+        });
+    }
 
     function renderBlocks() {
       blocksCanvas.querySelectorAll('.story-block').forEach(el => el.remove());
@@ -215,6 +255,22 @@ window.addEventListener("DOMContentLoaded", () => {
         renderConnections();
       });
       sidebar.appendChild(addSelBtn);
+      // Delete Block button
+      const deleteBlockBtn = document.createElement('button');
+      deleteBlockBtn.type = 'button';
+      deleteBlockBtn.textContent = 'Delete Block';
+      deleteBlockBtn.style.marginTop = '0.5em';
+      deleteBlockBtn.style.background = '#e74c3c';
+      deleteBlockBtn.style.color = '#fff';
+      deleteBlockBtn.addEventListener('click', () => {
+        if (confirm('Delete this block?')) {
+          blocks.splice(selectedBlock, 1);
+          selectedBlock = null;
+          renderSidebar();
+          renderBlocks();
+        }
+      });
+      sidebar.appendChild(deleteBlockBtn);
     }
 
     function renderConnections(mouseX, mouseY) {
@@ -329,18 +385,246 @@ window.addEventListener("DOMContentLoaded", () => {
     saveStoryBtn.textContent = 'Save Story';
     saveStoryBtn.style.marginTop = '0.7em';
     saveStoryBtn.style.marginRight = '0.7em';
+    const saveAsStoryBtn = document.createElement('button');
+    saveAsStoryBtn.id = 'save-as-story-btn';
+    saveAsStoryBtn.textContent = 'Save As';
+    saveAsStoryBtn.style.marginTop = '0.7em';
+    saveAsStoryBtn.style.marginRight = '0.7em';
     const mainContainer = document.querySelector('.container');
     mainContainer.insertBefore(saveStoryBtn, document.getElementById('add-block-btn'));
+    mainContainer.insertBefore(saveAsStoryBtn, document.getElementById('add-block-btn'));
 
     saveStoryBtn.addEventListener('click', async () => {
+      let title = currentStoryTitle;
+      if (!title) {
+        title = prompt('Enter a title for your story:');
+        if (!title || !title.trim()) {
+          alert('Story not saved: title is required.');
+          return;
+        }
+        title = title.trim();
+      }
       try {
         await window.__TAURI__.core.invoke('save_story', {
+          title,
           storyJson: JSON.stringify(blocks)
         });
-        alert('Story saved successfully!');
+        currentStoryTitle = title;
+        alert('Story saved successfully as "' + title + '"!');
       } catch (e) {
         alert('Failed to save story: ' + e);
       }
     });
+
+    saveAsStoryBtn.addEventListener('click', async () => {
+      const title = prompt('Enter a new title for your story:');
+      if (!title || !title.trim()) {
+        alert('Story not saved: title is required.');
+        return;
+      }
+      try {
+        await window.__TAURI__.core.invoke('save_story', {
+          title: title.trim(),
+          storyJson: JSON.stringify(blocks)
+        });
+        currentStoryTitle = title.trim();
+        alert('Story saved as "' + title.trim() + '" successfully!');
+      } catch (e) {
+        alert('Failed to save story: ' + e);
+      }
+    });
+
+    // Create modal for story list
+    const storyModal = document.createElement('div');
+    storyModal.id = 'story-modal';
+    storyModal.style.display = 'none';
+    storyModal.style.position = 'fixed';
+    storyModal.style.top = '0';
+    storyModal.style.left = '0';
+    storyModal.style.width = '100vw';
+    storyModal.style.height = '100vh';
+    storyModal.style.background = 'rgba(0,0,0,0.4)';
+    storyModal.style.justifyContent = 'center';
+    storyModal.style.alignItems = 'center';
+    storyModal.style.zIndex = '2000';
+    storyModal.innerHTML = `
+      <div id="story-modal-content" style="background:#fff;padding:2em;border-radius:10px;min-width:300px;max-width:90vw;max-height:80vh;overflow:auto;box-shadow:0 2px 10px rgba(0,0,0,0.2);position:relative;">
+        <button id="close-story-modal" style="position:absolute;top:8px;right:8px;font-size:1.2em;background:transparent;border:none;cursor:pointer;">✕</button>
+        <h2>Saved Stories</h2>
+        <ul id="story-list" style="list-style:none;padding:0;"></ul>
+      </div>
+    `;
+    document.body.appendChild(storyModal);
+
+    document.getElementById('close-story-modal').addEventListener('click', () => {
+      storyModal.style.display = 'none';
+    });
+  }
+
+  // Stories page logic (now for stories.html)
+  const storiesList = document.getElementById('stories-list');
+  const createNewStoryBtn = document.getElementById('create-new-story-btn');
+  const backToMenuBtn = document.getElementById('back-to-menu-btn');
+  if (storiesList && createNewStoryBtn && backToMenuBtn) {
+    // Fetch and display stories
+    (async () => {
+      storiesList.innerHTML = '<li>Loading...</li>';
+      try {
+        const stories = await window.__TAURI__.core.invoke('list_stories');
+        if (stories.length === 0) {
+          storiesList.innerHTML = '<li style="color:#888;">No stories found.</li>';
+        } else {
+          storiesList.innerHTML = '';
+          stories.forEach(story => {
+            const li = document.createElement('li');
+            li.style.display = 'flex';
+            li.style.alignItems = 'center';
+            li.style.padding = '0.4em 0';
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = story;
+            nameSpan.style.flex = '1';
+            li.appendChild(nameSpan);
+            const loadBtn = document.createElement('button');
+            loadBtn.textContent = 'Load';
+            loadBtn.style.marginLeft = '1em';
+            loadBtn.addEventListener('click', () => {
+              window.location.href = `create-story.html?title=${encodeURIComponent(story)}`;
+            });
+            li.appendChild(loadBtn);
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.style.marginLeft = '0.5em';
+            deleteBtn.addEventListener('click', async () => {
+              if (!confirm(`Delete story '${story}'? This cannot be undone.`)) return;
+              try {
+                await window.__TAURI__.core.invoke('delete_story', { title: story });
+                li.remove();
+                alert('Deleted story: ' + story);
+              } catch (e) {
+                alert('Failed to delete story: ' + e);
+              }
+            });
+            li.appendChild(deleteBtn);
+            storiesList.appendChild(li);
+          });
+        }
+      } catch (e) {
+        storiesList.innerHTML = '<li style="color:#c00;">Failed to load stories.</li>';
+      }
+    })();
+    createNewStoryBtn.addEventListener('click', () => {
+      window.location.href = 'create-story.html';
+    });
+    backToMenuBtn.addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+    return;
+  }
+
+  // Play page logic (for play.html)
+  const playStoriesList = document.getElementById('play-stories-list');
+  const playBackToMenuBtn = document.getElementById('back-to-menu-btn');
+  if (playStoriesList && playBackToMenuBtn) {
+    (async () => {
+      playStoriesList.innerHTML = '<li>Loading...</li>';
+      try {
+        const stories = await window.__TAURI__.core.invoke('list_stories');
+        if (stories.length === 0) {
+          playStoriesList.innerHTML = '<li style="color:#888;">No stories found.</li>';
+        } else {
+          playStoriesList.innerHTML = '';
+          stories.forEach(story => {
+            const li = document.createElement('li');
+            li.style.display = 'flex';
+            li.style.alignItems = 'center';
+            li.style.padding = '0.4em 0';
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = story;
+            nameSpan.style.flex = '1';
+            li.appendChild(nameSpan);
+            const playBtn = document.createElement('button');
+            playBtn.textContent = 'Play';
+            playBtn.style.marginLeft = '1em';
+            playBtn.addEventListener('click', () => {
+              window.location.href = `player.html?title=${encodeURIComponent(story)}`;
+            });
+            li.appendChild(playBtn);
+            playStoriesList.appendChild(li);
+          });
+        }
+      } catch (e) {
+        playStoriesList.innerHTML = '<li style="color:#c00;">Failed to load stories.</li>';
+      }
+    })();
+    playBackToMenuBtn.addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+    return;
+  }
+
+  // Player page logic (for player.html)
+  const storyPlayerContainer = document.getElementById('story-player-container');
+  const playerBackToMenuBtn = document.getElementById('player-back-to-menu-btn');
+  if (storyPlayerContainer && playerBackToMenuBtn) {
+    const params = new URLSearchParams(window.location.search);
+    const playTitle = params.get('title');
+    let blocks = [];
+    let currentIdx = 0;
+    function renderPlayer() {
+      storyPlayerContainer.innerHTML = '';
+      if (!blocks.length) {
+        storyPlayerContainer.innerHTML = '<div style="color:#c00;">No story loaded.</div>';
+        return;
+      }
+      const block = blocks[currentIdx];
+      const blockDiv = document.createElement('div');
+      blockDiv.style.marginBottom = '1em';
+      blockDiv.innerHTML = `<div style='font-weight:bold;font-size:1.1em;margin-bottom:0.5em;'>${block.title || 'Block ' + (currentIdx + 1)}</div><div style='margin-bottom:1em;'>${block.text || ''}</div>`;
+      storyPlayerContainer.appendChild(blockDiv);
+      if (block.selections && block.selections.length > 0) {
+        block.selections.forEach((sel, selIdx) => {
+          const btn = document.createElement('button');
+          btn.textContent = sel.text || 'Choice ' + (selIdx + 1);
+          btn.style.marginRight = '0.5em';
+          btn.style.marginBottom = '0.5em';
+          btn.addEventListener('click', () => {
+            if (sel.target != null && blocks[sel.target]) {
+              currentIdx = sel.target;
+              renderPlayer();
+            } else {
+              alert('End of story or invalid target.');
+            }
+          });
+          storyPlayerContainer.appendChild(btn);
+        });
+      } else {
+        const endDiv = document.createElement('div');
+        endDiv.style.color = '#888';
+        endDiv.style.marginTop = '1em';
+        endDiv.textContent = 'End of story.';
+        storyPlayerContainer.appendChild(endDiv);
+      }
+    }
+    if (playTitle) {
+      window.__TAURI__.core.invoke('load_story', { title: playTitle })
+        .then(storyJson => {
+          try {
+            blocks = JSON.parse(storyJson);
+            currentIdx = 0;
+            renderPlayer();
+          } catch (e) {
+            storyPlayerContainer.innerHTML = '<div style="color:#c00;">Failed to parse story: ' + e + '</div>';
+          }
+        })
+        .catch(e => {
+          storyPlayerContainer.innerHTML = '<div style="color:#c00;">Failed to load story: ' + e + '</div>';
+        });
+    } else {
+      storyPlayerContainer.innerHTML = '<div style="color:#888;">No story selected.</div>';
+    }
+    playerBackToMenuBtn.addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+    return;
   }
 });
