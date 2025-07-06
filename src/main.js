@@ -464,6 +464,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // Stories page logic (now for stories.html)
   const storiesList = document.getElementById('stories-list');
   const createNewStoryBtn = document.getElementById('create-new-story-btn');
+  const importStoryBtn = document.getElementById('import-story-btn');
   const backToMenuBtn = document.getElementById('back-to-menu-btn');
   if (storiesList && createNewStoryBtn && backToMenuBtn) {
     // Fetch and display stories
@@ -491,6 +492,19 @@ window.addEventListener("DOMContentLoaded", () => {
               window.location.href = `create-story.html?title=${encodeURIComponent(story)}`;
             });
             li.appendChild(loadBtn);
+            const exportBtn = document.createElement('button');
+            exportBtn.textContent = 'Export';
+            exportBtn.style.marginLeft = '0.5em';
+            exportBtn.addEventListener('click', async () => {
+              try {
+                const storyJson = await window.__TAURI__.core.invoke('load_story', { title: story });
+                const filePath = await window.__TAURI__.core.invoke('export_story', { title: story, storyJson: storyJson });
+                alert(`Story exported successfully to: ${filePath}`);
+              } catch (e) {
+                alert('Failed to export story: ' + e);
+              }
+            });
+            li.appendChild(exportBtn);
             const deleteBtn = document.createElement('button');
             deleteBtn.textContent = 'Delete';
             deleteBtn.style.marginLeft = '0.5em';
@@ -515,6 +529,57 @@ window.addEventListener("DOMContentLoaded", () => {
     createNewStoryBtn.addEventListener('click', () => {
       window.location.href = 'create-story.html';
     });
+    
+    // Import story functionality
+    if (importStoryBtn) {
+      // Create a hidden file input
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '.json';
+      fileInput.style.display = 'none';
+      document.body.appendChild(fileInput);
+      
+      importStoryBtn.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      fileInput.addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        try {
+          // Read the file content
+          const storyJson = await file.text();
+          
+          // Parse the story to get the title
+          const storyData = JSON.parse(storyJson);
+          let storyTitle = 'Imported Story';
+          
+          // Try to find a title in the story data
+          if (storyData.length > 0 && storyData[0].title) {
+            storyTitle = storyData[0].title;
+          }
+          
+          // Ask user for a name for the imported story
+          const finalTitle = prompt('Enter a name for this story:', storyTitle);
+          if (!finalTitle) return; // User cancelled
+          
+          // Save the imported story
+          await window.__TAURI__.core.invoke('save_story', { title: finalTitle, storyJson: storyJson });
+          
+          alert('Story imported successfully!');
+          
+          // Refresh the stories list
+          location.reload();
+        } catch (e) {
+          alert('Failed to import story: ' + e);
+        }
+        
+        // Clear the file input
+        fileInput.value = '';
+      });
+    }
+    
     backToMenuBtn.addEventListener('click', () => {
       window.location.href = 'index.html';
     });

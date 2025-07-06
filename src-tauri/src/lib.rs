@@ -1,8 +1,6 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use sanitize_filename;
-use std::fs;
-use std::io;
-use std::path::PathBuf;
+
 use tauri::path;
 use tauri::AppHandle;
 use tauri::Manager;
@@ -21,6 +19,35 @@ fn save_story(app: AppHandle, title: String, story_json: String) -> Result<(), S
     let file_path = stories_dir.join(format!("{}.json", safe_title));
     std::fs::write(&file_path, story_json).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[tauri::command]
+fn export_story(app: AppHandle, title: String, story_json: String) -> Result<String, String> {
+    // Get the app data directory and create an exports folder
+    let app_dir = path::PathResolver::app_data_dir(&app.path()).map_err(|e| e.to_string())?;
+    let exports_dir = app_dir.join("exports");
+    std::fs::create_dir_all(&exports_dir).map_err(|e| e.to_string())?;
+
+    let safe_title = sanitize_filename::sanitize(&title);
+    let file_path = exports_dir.join(format!("{}.json", safe_title));
+
+    // Write the story data to the exports folder
+    std::fs::write(&file_path, story_json).map_err(|e| e.to_string())?;
+
+    // Return the path where the file was saved
+    Ok(file_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn import_story(_app: AppHandle, file_path: String) -> Result<String, String> {
+    // Read the story data from the specified file
+    let story_data = std::fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
+
+    // Validate that it's valid JSON
+    serde_json::from_str::<serde_json::Value>(&story_data)
+        .map_err(|e| format!("Invalid JSON: {}", e))?;
+
+    Ok(story_data)
 }
 
 #[tauri::command]
@@ -74,6 +101,8 @@ pub fn run() {
             greet,
             exit_app,
             save_story,
+            export_story,
+            import_story,
             list_stories,
             load_story,
             delete_story
