@@ -9,129 +9,421 @@
     <style>
       html,
       body {
-        font-size: 13px;
+        font-size: 14px;
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        overflow: hidden;
       }
-      #editor-layout {
+
+      .story-editor {
         display: flex;
-        flex-direction: row;
-        width: 100%;
+        height: 100vh;
       }
-      #blocks-canvas {
-        position: relative;
-        width: 65%;
-        min-height: 500px;
-        background: #f4f4f4;
-        border: 1px solid #ccc;
-        margin-bottom: 1em;
-        overflow: auto;
-        font-size: 1em;
-      }
-      #sidebar {
-        width: 35%;
-        min-width: 180px;
-        background: #fff;
-        border-left: 1px solid #ccc;
-        padding: 0.7em 1em 1em 1em;
-        box-sizing: border-box;
-        position: relative;
-        font-size: 1em;
-      }
-      .story-block {
-        position: absolute;
-        min-width: 120px;
-        min-height: 28px;
-        background: #fff;
-        border: 2px solid #396cd8;
-        border-radius: 6px;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-        padding: 0.2em 0.7em;
-        cursor: move;
-        z-index: 2;
+
+      .sidebar {
+        width: 300px;
+        background: #f8f9fa;
+        border-right: 1px solid #ddd;
         display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1em;
+        flex-direction: column;
       }
-      .block-title {
+
+      .sidebar-header {
+        padding: 1em;
+        border-bottom: 1px solid #ddd;
+        background: #fff;
+      }
+
+      .story-title-input {
+        font-size: 1.2em;
         font-weight: bold;
-        cursor: pointer;
-        margin-bottom: 0;
+        border: none;
+        border-bottom: 2px solid #396cd8;
+        background: transparent;
         width: 100%;
-        text-align: center;
-        font-size: 1em;
+        padding: 0.3em 0;
       }
-      .sel-handle {
-        display: inline-block;
-        width: 12px;
-        height: 12px;
-        background: #396cd8;
-        border-radius: 50%;
-        margin-right: 0.3em;
-        cursor: crosshair;
-        vertical-align: middle;
-        position: relative;
+
+      .story-title-input:focus {
+        outline: none;
+        border-bottom-color: #e67e22;
       }
-      .selection-row {
+
+      .scenes-explorer {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1em;
+      }
+
+      .scenes-title {
+        font-weight: bold;
+        color: #555;
+        margin-bottom: 1em;
+        font-size: 0.9em;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      /* New styles for tree view */
+      .scenes-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .scenes-list ul {
+        list-style: none;
+        padding-left: 1em; /* Indentation for children */
+        margin: 0;
+      }
+
+      .scene-item {
+        padding: 0.5em;
+        margin-bottom: 0.2em;
+        border-radius: 4px;
+        cursor: pointer;
         display: flex;
         align-items: center;
-        margin-bottom: 0.3em;
-        font-size: 1em;
+        gap: 0.5em;
+        transition: background-color 0.2s;
       }
-      .selection-row input,
-      .selection-row select {
-        font-size: 1em;
-        padding: 0.2em 0.4em;
+
+      .scene-item:hover {
+        background: #e9ecef;
       }
-      .selection-row input {
-        margin-right: 0.3em;
-        width: 60px;
+
+      .scene-item.active {
+        background: #396cd8;
+        color: white;
       }
-      .selection-row select {
-        margin-right: 0.3em;
+
+      .scene-toggle {
+        width: 16px;
+        height: 16px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        flex-shrink: 0;
       }
-      #connections-svg {
-        position: absolute;
-        top: 0;
-        left: 0;
+
+      .scene-toggle::before {
+        content: "►"; /* Right-pointing triangle for collapsed */
+        font-size: 0.8em;
+        transition: transform 0.2s;
+      }
+
+      .scene-item.expanded .scene-toggle::before {
+        content: "▼"; /* Down-pointing triangle for expanded */
+      }
+
+      .scene-icon {
+        width: 16px;
+        height: 16px;
+        background: #6c757d;
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+
+      .scene-item.active .scene-icon {
+        background: #fff;
+      }
+
+      .scene-title {
+        flex: 1;
+        font-size: 0.9em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .scene-number {
+        font-size: 0.8em;
+        color: #6c757d;
+        font-weight: bold;
+      }
+
+      .scene-item.active .scene-number {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .sidebar-actions {
+        padding: 1em;
+        border-top: 1px solid #ddd;
+        background: #fff;
+      }
+
+      .add-scene-btn {
         width: 100%;
-        height: 100%;
-        pointer-events: none;
-        z-index: 1;
-      }
-      #sidebar button[type="button"],
-      #add-block-btn,
-      #cancel-story-btn {
-        font-size: 1em;
-        padding: 0.3em 0.8em;
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 0.5em;
         border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
       }
-      #sidebar textarea,
-      #sidebar input,
-      #sidebar select {
-        font-size: 1em;
-        padding: 0.2em 0.4em;
+
+      .add-scene-btn:hover {
+        background: #218838;
       }
-      #sidebar label {
+
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+      }
+
+      .editor-header {
+        padding: 1em;
+        border-bottom: 1px solid #ddd;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .editor-title {
+        font-weight: bold;
+        color: #333;
+      }
+
+      .editor-actions {
+        display: flex;
+        gap: 0.5em;
+      }
+
+      .editor-content {
+        flex: 1;
+        padding: 2em;
+        overflow-y: auto;
+      }
+
+      .empty-editor {
+        text-align: center;
+        color: #666;
+        padding: 4em 2em;
+      }
+
+      .empty-editor h3 {
+        margin-bottom: 1em;
+        color: #333;
+      }
+
+      .scene-form {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .form-group {
+        margin-bottom: 1.5em;
+      }
+
+      .form-label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 0.5em;
+        color: #333;
+      }
+
+      .form-input {
+        width: 100%;
+        padding: 0.5em;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-family: inherit;
         font-size: 1em;
+      }
+
+      .form-textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 0.5em;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-family: inherit;
+        font-size: 1em;
+        resize: vertical;
+      }
+
+      .choices-section {
+        margin-top: 2em;
+        padding-top: 1em;
+        border-top: 1px solid #eee;
+      }
+
+      .choices-title {
+        font-weight: bold;
+        margin-bottom: 1em;
+        color: #333;
+      }
+
+      .choice-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+        margin-bottom: 0.8em;
+        padding: 0.8em;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border: 1px solid #e9ecef;
+      }
+
+      .choice-text {
+        flex: 1;
+        padding: 0.4em;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+
+      .choice-target {
+        width: 150px;
+        padding: 0.4em;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+
+      .btn-small {
+        padding: 0.3em 0.6em;
+        font-size: 0.8em;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        background: #fff;
+        cursor: pointer;
+      }
+
+      .btn-small:hover {
+        background: #f0f0f0;
+      }
+
+      .btn-danger {
+        background: #dc3545;
+        color: white;
+        border-color: #dc3545;
+      }
+
+      .btn-danger:hover {
+        background: #c82333;
+      }
+
+      .add-choice-btn {
+        background: #28a745;
+        color: white;
+        border: 1px solid #28a745;
+        padding: 0.5em 1em;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+        margin-top: 0.5em;
+      }
+
+      .add-choice-btn:hover {
+        background: #218838;
+      }
+
+      .global-actions {
+        padding: 1em;
+        border-top: 1px solid #ddd;
+        background: #f8f9fa;
+        display: flex;
+        gap: 0.5em;
+        justify-content: center;
+      }
+
+      .btn-primary {
+        background: #396cd8;
+        color: white;
+        border: 1px solid #396cd8;
+        padding: 0.6em 1.2em;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+      }
+
+      .btn-primary:hover {
+        background: #2c5aa0;
+      }
+
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: 1px solid #6c757d;
+        padding: 0.6em 1.2em;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+      }
+
+      .btn-secondary:hover {
+        background: #5a6268;
       }
     </style>
   </head>
   <body>
-    <main class="container">
-      <h1 style="font-size: 1.3em">Create a Story</h1>
-      <div id="editor-layout">
-        <div id="blocks-canvas">
-          <svg id="connections-svg"></svg>
+    <div class="story-editor">
+      <!-- Left Sidebar - Scene Explorer -->
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <input
+            type="text"
+            id="story-title-input"
+            class="story-title-input"
+            placeholder="Story Title..."
+          />
         </div>
-        <div id="sidebar"></div>
+
+        <div class="scenes-explorer">
+          <div class="scenes-title">Scenes</div>
+          <ul id="scenes-list" class="scenes-list">
+            <div class="empty-editor">
+              <p>No scenes yet. Click "Add Scene" to start!</p>
+            </div>
+          </ul>
+        </div>
+
+        <div class="sidebar-actions">
+          <button id="add-scene-btn" class="add-scene-btn">+ Add Scene</button>
+        </div>
       </div>
-      <button id="add-block-btn" type="button" style="margin-top: 0.7em">
-        Add Block
-      </button>
-      <button id="cancel-story-btn" type="button" style="margin-top: 0.7em">
-        Back to Menu
-      </button>
-    </main>
-    <script type="module" src="/main.js" defer></script>
+
+      <!-- Main Content Area -->
+      <div class="main-content">
+        <div class="editor-header">
+          <div class="editor-title" id="editor-title">
+            Select a scene to edit
+          </div>
+          <div class="editor-actions">
+            <button
+              id="delete-scene-btn"
+              class="btn-small btn-danger"
+              style="display: none"
+            >
+              Delete Scene
+            </button>
+          </div>
+        </div>
+
+        <div class="editor-content" id="editor-content">
+          <div class="empty-editor">
+            <h3>Welcome to Story Creator</h3>
+            <p>
+              Select a scene from the sidebar to start editing, or create a new
+              scene to begin your story.
+            </p>
+          </div>
+        </div>
+
+        <div class="global-actions">
+          <button id="save-story-btn" class="btn-primary">Save Story</button>
+          <button id="cancel-story-btn" class="btn-secondary">
+            Back to Menu
+          </button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

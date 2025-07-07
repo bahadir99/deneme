@@ -33,10 +33,18 @@ window.addEventListener("DOMContentLoaded", () => {
   // Main menu logic: handle Manage Stories button
   const manageStoriesBtn = document.getElementById('manage-stories-btn');
   if (manageStoriesBtn) {
+    console.log('Manage Stories button found');
     manageStoriesBtn.addEventListener('click', () => {
-      window.location.href = 'stories.html';
+      console.log('Manage Stories button clicked');
+      try {
+        window.location.href = 'stories.html';
+        console.log('Navigation attempted');
+      } catch (error) {
+        console.error('Navigation error:', error);
+      }
     });
-    return;
+  } else {
+    console.log('Manage Stories button not found');
   }
 
   const createStoryBtn = document.getElementById("create-story-btn");
@@ -46,23 +54,21 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  const blocksCanvas = document.getElementById("blocks-canvas");
-  const addBlockBtn = document.getElementById("add-block-btn");
+  // New sidebar + editor story creation system
+  const scenesList = document.getElementById("scenes-list");
+  const addSceneBtn = document.getElementById("add-scene-btn");
+  const saveStoryBtn = document.getElementById("save-story-btn");
   const cancelStoryBtn = document.getElementById("cancel-story-btn");
-  const connectionsSvg = document.getElementById("connections-svg");
+  const storyTitleInput = document.getElementById("story-title-input");
+  const editorTitle = document.getElementById("editor-title");
+  const editorContent = document.getElementById("editor-content");
+  const deleteSceneBtn = document.getElementById("delete-scene-btn");
 
-  if (blocksCanvas && addBlockBtn && cancelStoryBtn && connectionsSvg) {
-    let blocks = [];
+  if (scenesList && addSceneBtn && saveStoryBtn && cancelStoryBtn && storyTitleInput) {
+    // Hierarchical scenes: each scene can have children (sub-scenes)
+    let scenes = [];
     let currentStoryTitle = null;
-    let dragInfo = null;
-    let selectedBlock = null; // index of selected block for sidebar
-    let connectDrag = null; // { blockIdx, selIdx, startX, startY, color }
-    const sidebar = document.getElementById("sidebar");
-
-    // Color palette for selections
-    const selectionColors = [
-      '#396cd8', '#e67e22', '#27ae60', '#e74c3c', '#8e44ad', '#16a085', '#f39c12', '#2c3e50', '#d35400', '#7f8c8d'
-    ];
+    let selectedScenePath = null; // Array of indices representing the path to the selected scene
 
     // Load story if title param is present in URL
     const params = new URLSearchParams(window.location.search);
@@ -71,10 +77,11 @@ window.addEventListener("DOMContentLoaded", () => {
       window.__TAURI__.core.invoke('load_story', { title: loadTitle })
         .then(storyJson => {
           try {
-            blocks = JSON.parse(storyJson);
+            scenes = JSON.parse(storyJson);
             currentStoryTitle = loadTitle;
-            renderBlocks();
+            storyTitleInput.value = loadTitle;
             renderSidebar();
+            renderEditor();
             alert('Loaded story: ' + loadTitle);
           } catch (e) {
             alert('Failed to parse loaded story: ' + e);
@@ -85,380 +92,405 @@ window.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function renderBlocks() {
-      blocksCanvas.querySelectorAll('.story-block').forEach(el => el.remove());
-      blocks.forEach((block, blockIdx) => {
-        const blockDiv = document.createElement("div");
-        blockDiv.className = "story-block";
-        blockDiv.style.left = block.x + "px";
-        blockDiv.style.top = block.y + "px";
-        blockDiv.setAttribute("data-block-idx", blockIdx);
-        blockDiv.style.zIndex = dragInfo && dragInfo.idx === blockIdx ? 10 : 2;
-        blockDiv.style.borderColor = (selectedBlock === blockIdx) ? '#e67e22' : '#396cd8';
-        blockDiv.style.userSelect = "none";
-
-        // Drag logic: click and hold anywhere except handle
-        blockDiv.addEventListener("mousedown", (e) => {
-          if (e.target.classList.contains('sel-handle')) return;
-          dragInfo = {
-            idx: blockIdx,
-            offsetX: e.clientX - block.x,
-            offsetY: e.clientY - block.y
-          };
-          blockDiv.style.zIndex = 10;
-        });
-
-        // Block title only (unselectable)
-        if (block.title === undefined) block.title = "";
-        const blockTitleDiv = document.createElement("div");
-        blockTitleDiv.className = "block-title";
-        blockTitleDiv.textContent = block.title || `Block ${blockIdx + 1}`;
-        blockTitleDiv.style.userSelect = "none";
-        // Single click: just select (no sidebar)
-        blockDiv.addEventListener("click", (e) => {
-          if (e.detail === 1 && !e.target.classList.contains('sel-handle')) {
-            selectedBlock = blockIdx;
-            renderBlocks();
-          }
-        });
-        // Double click: open sidebar
-        blockDiv.addEventListener("dblclick", (e) => {
-          if (!e.target.classList.contains('sel-handle')) {
-            selectedBlock = blockIdx;
-            renderSidebar();
-            renderBlocks();
-          }
-        });
-        blockDiv.appendChild(blockTitleDiv);
-
-        blocksCanvas.appendChild(blockDiv);
-      });
-      renderConnections();
+    // Helper: get scene by path (array of indices)
+    function getSceneByPath(path) {
+      let node = scenes;
+      for (let i = 0; i < path.length; i++) {
+        const key = path[i];
+        if (Array.isArray(node)) {
+          if (typeof key !== 'number' || key < 0 || key >= node.length) return null;
+          node = node[key];
+        } else if (typeof node === 'object' && node !== null) {
+          if (!(key in node)) return null;
+          node = node[key];
+        } else {
+          return null;
+        }
+        if (node === undefined || node === null) return null;
+      }
+      return node;
     }
 
+    // Helper: get all scenes in tree as flat list with their paths
+    function flattenScenes(scenesArr, path = []) {
+      let result = [];
+      if (!Array.isArray(scenesArr)) return result;
+      scenesArr.forEach((scene, idx) => {
+        if (!scene) return;
+        const thisPath = [...path, idx];
+        result.push({ scene, path: thisPath });
+        if (scene.choices && Array.isArray(scene.choices)) {
+          scene.choices.forEach((choice, cidx) => {
+            if (choice && choice.subScene) {
+              result = result.concat(flattenScenes([choice.subScene], [...thisPath, 'choices', cidx, 'subScene']));
+            }
+          });
+        }
+      });
+      return result;
+    }
+
+    // Render sidebar with indentation based on flow, not parent/child
     function renderSidebar() {
-      if (selectedBlock === null || blocks[selectedBlock] === undefined) {
-        sidebar.innerHTML = '<div style="color:#888;">Select a block to edit</div>';
+      if (!Array.isArray(scenes) || scenes.length === 0) {
+        scenesList.innerHTML = '<div class="empty-editor"><p>No scenes yet. Click "Add Scene" to start!</p></div>';
         return;
       }
-      const block = blocks[selectedBlock];
-      sidebar.innerHTML = '';
-      // Close button
-      const closeBtn = document.createElement('button');
-      closeBtn.textContent = '✕';
-      closeBtn.style.position = 'absolute';
-      closeBtn.style.top = '8px';
-      closeBtn.style.right = '8px';
-      closeBtn.style.background = 'transparent';
-      closeBtn.style.border = 'none';
-      closeBtn.style.fontSize = '1.2em';
-      closeBtn.style.cursor = 'pointer';
-      closeBtn.title = 'Close';
-      closeBtn.addEventListener('click', () => {
-        selectedBlock = null;
-        renderSidebar();
-        renderBlocks();
-      });
-      sidebar.appendChild(closeBtn);
-      // Title
-      const titleLabel = document.createElement('label');
-      titleLabel.textContent = 'Block Title:';
-      sidebar.appendChild(titleLabel);
-      const titleInput = document.createElement('input');
-      titleInput.type = 'text';
-      titleInput.value = block.title;
-      titleInput.style.width = '100%';
-      titleInput.style.marginBottom = '0.5em';
-      titleInput.addEventListener('input', (e) => {
-        block.title = e.target.value;
-        renderBlocks();
-      });
-      sidebar.appendChild(titleInput);
-      // Text
-      const textLabel = document.createElement('label');
-      textLabel.textContent = 'Block Text:';
-      sidebar.appendChild(textLabel);
-      const blockText = document.createElement('textarea');
-      blockText.value = block.text || '';
-      blockText.rows = 3;
-      blockText.style.width = '100%';
-      blockText.style.margin = '0.5em 0';
-      blockText.addEventListener('input', (e) => {
-        block.text = e.target.value;
-      });
-      sidebar.appendChild(blockText);
-      // Selections
-      const selLabel = document.createElement('label');
-      selLabel.textContent = 'Selections:';
-      sidebar.appendChild(selLabel);
-      block.selections.forEach((sel, selIdx) => {
-        const selDiv = document.createElement('div');
-        selDiv.className = 'selection-row';
-        // Drag-to-connect handle
-        const handle = document.createElement('span');
-        handle.className = 'sel-handle';
-        handle.title = 'Drag to connect';
-        handle.style.background = selectionColors[selIdx % selectionColors.length];
-        handle.addEventListener('mousedown', (e) => {
+      scenesList.innerHTML = '';
+
+      // Compute depth for each scene by traversing from the start
+      const sceneDepths = Array(scenes.length).fill(null);
+      function traverse(idx, depth) {
+        if (sceneDepths[idx] === null || sceneDepths[idx] > depth) {
+          sceneDepths[idx] = depth;
+          const scene = scenes[idx];
+          if (scene && Array.isArray(scene.choices)) {
+            scene.choices.forEach(choice => {
+              if (typeof choice.target === 'number' && choice.target >= 0 && choice.target < scenes.length) {
+                traverse(choice.target, depth + 1);
+              }
+            });
+          }
+        }
+      }
+      traverse(0, 0); // Assume scene 0 is the start
+
+      // Render all scenes flat, but with indentation based on computed depth
+      scenes.forEach((scene, idx) => {
+        const isActive = Array.isArray(selectedScenePath) && selectedScenePath.length === 1 && selectedScenePath[0] === idx;
+        const sceneItem = document.createElement('div');
+        sceneItem.className = `scene-item${isActive ? ' active' : ''}`;
+        sceneItem.style.paddingLeft = ((sceneDepths[idx] || 0) * 24 + 8) + 'px';
+        sceneItem.setAttribute('data-scene-path', JSON.stringify([idx]));
+        const sceneIcon = document.createElement('div');
+        sceneIcon.className = 'scene-icon';
+        const sceneTitle = document.createElement('div');
+        sceneTitle.className = 'scene-title';
+        sceneTitle.innerHTML = `<span class="scene-number">${idx + 1}</span>${scene.title || `Scene ${idx + 1}`}`;
+        sceneItem.appendChild(sceneIcon);
+        sceneItem.appendChild(sceneTitle);
+        sceneItem.addEventListener('click', (e) => {
           e.stopPropagation();
-          const rect = handle.getBoundingClientRect();
-          const canvasRect = blocksCanvas.getBoundingClientRect();
-          connectDrag = {
-            blockIdx: selectedBlock,
-            selIdx,
-            startX: rect.left + rect.width / 2 - canvasRect.left,
-            startY: rect.top + rect.height / 2 - canvasRect.top,
-            color: selectionColors[selIdx % selectionColors.length]
-          };
-          renderConnections();
+          selectScene([idx]);
         });
-        selDiv.appendChild(handle);
-        // Selection text
-        const selInput = document.createElement('input');
-        selInput.type = 'text';
-        selInput.placeholder = 'Selection text';
-        selInput.value = sel.text;
-        selInput.addEventListener('input', (e) => {
-          sel.text = e.target.value;
-        });
-        selDiv.appendChild(selInput);
-        // Dropdown to link to another block
-        const selTarget = document.createElement('select');
-        const noneOption = document.createElement('option');
-        noneOption.value = '';
-        noneOption.textContent = '-- Link to block --';
-        selTarget.appendChild(noneOption);
-        blocks.forEach((b, idx) => {
-          const opt = document.createElement('option');
-          opt.value = idx;
-          opt.textContent = `Block ${idx + 1}`;
-          if (sel.target === idx) opt.selected = true;
-          selTarget.appendChild(opt);
-        });
-        selTarget.value = sel.target !== null ? sel.target : '';
-        selTarget.addEventListener('change', (e) => {
-          sel.target = e.target.value === '' ? null : Number(e.target.value);
-          renderConnections();
-        });
-        selDiv.appendChild(selTarget);
-        selDiv.style.marginBottom = '0.5em';
-        sidebar.appendChild(selDiv);
+        scenesList.appendChild(sceneItem);
       });
-      // Add Selection button
-      const addSelBtn = document.createElement('button');
-      addSelBtn.type = 'button';
-      addSelBtn.textContent = 'Add Selection';
-      addSelBtn.style.marginTop = '0.5em';
-      addSelBtn.addEventListener('click', () => {
-        block.selections.push({ text: '', target: null });
+    }
+
+    function selectScene(path) {
+      selectedScenePath = path;
+      renderSidebar();
+      renderEditor();
+    }
+
+    function renderEditor() {
+      if (!selectedScenePath || selectedScenePath.length !== 1) {
+        editorTitle.textContent = 'Select a scene to edit';
+        editorContent.innerHTML = `
+          <div class="empty-editor">
+            <h3>Welcome to Story Creator</h3>
+            <p>Select a scene from the sidebar to start editing, or create a new scene to begin your story.</p>
+          </div>
+        `;
+        deleteSceneBtn.style.display = 'none';
+        return;
+      }
+      const idx = selectedScenePath[0];
+      const scene = scenes[idx];
+      if (!scene || typeof scene !== 'object') {
+        selectedScenePath = null;
         renderSidebar();
-        renderConnections();
+        renderEditor();
+        return;
+      }
+      editorTitle.textContent = `Scene ${idx + 1}${scene.title ? ': ' + scene.title : ''}`;
+      deleteSceneBtn.style.display = 'block';
+      // Layout: sidebar (left), preview (center), editor (right)
+      editorContent.innerHTML = `
+        <div style="display: flex; flex-direction: row; width: 100vw; min-height: 70vh;">
+          <div id="scenes-list-sidebar" style="min-width:220px;max-width:260px;width:240px;background:#f4f4f8;border-right:1px solid #e0e0e0;padding:18px 0 0 0;overflow-y:auto;">
+            <!-- Sidebar will be rendered here by renderSidebar() -->
+          </div>
+          <div class="scene-preview" style="flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 24px 16px 24px;background:#fff;min-width:320px;max-width:700px;">
+            <div style="font-weight:bold;font-size:1.2em;margin-bottom:0.5em;">${scene.title || `Scene ${idx + 1}`}</div>
+            <div style="margin-bottom:1em;white-space:pre-line;max-width:600px;">${scene.text || ''}</div>
+            <div style="margin-bottom:0.5em;font-weight:600;">Choices:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;" id="scene-preview-choices">
+              ${(scene.choices||[]).map((choice, cidx) => {
+                if (typeof choice.target === 'number' && scenes[choice.target]) {
+                  // Escape HTML for safety
+                  return `<button type='button' class='preview-choice-btn' data-target='${choice.target}' style='margin-bottom:0.3em;padding:0.4em 1.2em;border-radius:6px;border:1px solid #bbb;background:#f6f6fa;cursor:pointer;font-size:1em;'>${choice.text || '(No text)'}</button>`;
+                } else {
+                  return `<button type='button' disabled style='margin-bottom:0.3em;padding:0.4em 1.2em;border-radius:6px;border:1px solid #bbb;background:#eee;cursor:not-allowed;font-size:1em;'>${choice.text || '(No text)'}</button>`;
+                }
+              }).join('')}
+            </div>
+            <button id="preview-return-btn" style="margin-top:1.5em;padding:0.5em 1.5em;border-radius:6px;border:1px solid #bbb;background:#f0f0f8;cursor:pointer;font-size:1em;">Return</button>
+            <div style="margin-top:1em;color:#888;font-size:0.95em;">${scene.conditions ? `Conditions: <code>${JSON.stringify(scene.conditions)}</code>` : ''}</div>
+          </div>
+          <div class="scene-form" style="min-width:320px;max-width:400px;flex:0 0 350px;background:#f8f8fa;padding:18px 16px 16px 16px;border-radius:8px;box-shadow:0 1px 4px #0001;">
+            <div class="form-group">
+              <label class="form-label">Scene Title</label>
+              <input type="text" class="form-input" id="scene-title-input" value="${scene.title || ''}" placeholder="Enter scene title...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Scene Text</label>
+              <textarea class="form-textarea" id="scene-text-input" placeholder="Enter the scene text...">${scene.text || ''}</textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Scene Conditions <span style='font-weight:normal'>(JSON, e.g. {\"readLetter\":true,\"trait\":\"brave\"})</span></label>
+              <input type="text" class="form-input" id="scene-conditions-input" value="${scene.conditions ? JSON.stringify(scene.conditions) : ''}" placeholder='{"readLetter":true}'>
+            </div>
+            <div class="choices-section">
+              <div class="choices-title">Choices</div>
+              <div id="choices-list">
+                ${renderChoices(scene, idx)}
+              </div>
+              <button class="add-choice-btn" onclick="addChoice()">+ Add Choice</button>
+            </div>
+          </div>
+        </div>
+      `;
+      // Add event listener for preview return button
+      setTimeout(() => {
+        const returnBtn = document.getElementById('preview-return-btn');
+        if (returnBtn) {
+          returnBtn.addEventListener('click', () => {
+            // Return to main menu or previous page
+            window.location.href = 'index.html';
+          });
+        }
+      }, 0);
+      // Add click handlers for preview choice buttons (after DOM is updated)
+      setTimeout(() => {
+        const previewChoices = document.getElementById('scene-preview-choices');
+        if (previewChoices) {
+          previewChoices.querySelectorAll('.preview-choice-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const targetIdx = parseInt(btn.getAttribute('data-target'), 10);
+              if (!isNaN(targetIdx)) {
+                selectScene([targetIdx]);
+              }
+            });
+          });
+        }
+      }, 0);
+      // Move sidebar content into the sidebar container in the new layout
+      const sidebarContainer = document.getElementById('scenes-list-sidebar');
+      if (sidebarContainer) {
+        sidebarContainer.innerHTML = '';
+        // Render the sidebar into the sidebarContainer
+        // Temporarily swap scenesList to point to the sidebarContainer for rendering
+        const oldScenesList = scenesList;
+        window.scenesList = sidebarContainer;
+        renderSidebar();
+        window.scenesList = oldScenesList;
+      }
+      // Add event listeners
+      const titleInput = document.getElementById('scene-title-input');
+      const textInput = document.getElementById('scene-text-input');
+      const conditionsInput = document.getElementById('scene-conditions-input');
+      titleInput.addEventListener('input', (e) => {
+        scene.title = e.target.value;
+        // Update preview title live
+        const previewTitle = editorContent.querySelector('.scene-preview > div:first-child');
+        if (previewTitle) {
+          previewTitle.textContent = scene.title || `Scene ${idx + 1}`;
+        }
+        renderSidebar();
       });
-      sidebar.appendChild(addSelBtn);
-      // Delete Block button
-      const deleteBlockBtn = document.createElement('button');
-      deleteBlockBtn.type = 'button';
-      deleteBlockBtn.textContent = 'Delete Block';
-      deleteBlockBtn.style.marginTop = '0.5em';
-      deleteBlockBtn.style.background = '#e74c3c';
-      deleteBlockBtn.style.color = '#fff';
-      deleteBlockBtn.addEventListener('click', () => {
-        if (confirm('Delete this block?')) {
-          blocks.splice(selectedBlock, 1);
-          selectedBlock = null;
-          renderSidebar();
-          renderBlocks();
+      textInput.addEventListener('input', (e) => {
+        scene.text = e.target.value;
+        // Update preview text live
+        const previewText = editorContent.querySelector('.scene-preview > div:nth-child(2)');
+        if (previewText) {
+          previewText.textContent = scene.text || '';
         }
       });
-      sidebar.appendChild(deleteBlockBtn);
-    }
-
-    function renderConnections(mouseX, mouseY) {
-      connectionsSvg.innerHTML = "";
-      blocks.forEach((block, blockIdx) => {
-        const blockDiv = blocksCanvas.querySelector(`.story-block[data-block-idx='${blockIdx}']`);
-        if (!blockDiv) return;
-        const startX = blockDiv.offsetLeft + blockDiv.offsetWidth / 2;
-        const startY = blockDiv.offsetTop + blockDiv.offsetHeight;
-        block.selections.forEach((sel, selIdx) => {
-          const color = selectionColors[selIdx % selectionColors.length];
-          if (sel.target !== null && blocks[sel.target]) {
-            const targetDiv = blocksCanvas.querySelector(`.story-block[data-block-idx='${sel.target}']`);
-            if (!targetDiv) return;
-            const endX = targetDiv.offsetLeft + targetDiv.offsetWidth / 2;
-            const endY = targetDiv.offsetTop;
-            const midY = startY + (endY - startY) / 2;
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            const d = `M${startX},${startY} V${midY} H${endX} V${endY}`;
-            path.setAttribute("d", d);
-            path.setAttribute("fill", "none");
-            path.setAttribute("stroke", color);
-            path.setAttribute("stroke-width", "2");
-            path.setAttribute("marker-end", "url(#arrowhead)");
-            connectionsSvg.appendChild(path);
-          }
-          // Draw temp line if dragging from this selection
-          if (connectDrag && connectDrag.blockIdx === blockIdx && connectDrag.selIdx === selIdx && mouseX !== undefined && mouseY !== undefined) {
-            const midY = connectDrag.startY + (mouseY - connectDrag.startY) / 2;
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            const d = `M${connectDrag.startX},${connectDrag.startY} V${midY} H${mouseX} V${mouseY}`;
-            path.setAttribute("d", d);
-            path.setAttribute("fill", "none");
-            path.setAttribute("stroke", connectDrag.color);
-            path.setAttribute("stroke-width", "2");
-            path.setAttribute("stroke-dasharray", "4,2");
-            connectionsSvg.appendChild(path);
+      if (conditionsInput) {
+        conditionsInput.addEventListener('input', (e) => {
+          try {
+            scene.conditions = e.target.value ? JSON.parse(e.target.value) : undefined;
+            conditionsInput.classList.remove('input-error');
+          } catch (err) {
+            conditionsInput.classList.add('input-error');
           }
         });
-      });
-      if (!connectionsSvg.querySelector("marker#arrowhead")) {
-        const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
-        marker.setAttribute("id", "arrowhead");
-        marker.setAttribute("markerWidth", "10");
-        marker.setAttribute("markerHeight", "7");
-        marker.setAttribute("refX", "10");
-        marker.setAttribute("refY", "3.5");
-        marker.setAttribute("orient", "auto");
-        marker.setAttribute("markerUnits", "strokeWidth");
-        const arrowPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        arrowPath.setAttribute("d", "M0,0 L10,3.5 L0,7 Z");
-        arrowPath.setAttribute("fill", "#396cd8");
-        marker.appendChild(arrowPath);
-        connectionsSvg.appendChild(marker);
       }
+      // Real-time update for choice text and target
+      setTimeout(() => {
+        document.querySelectorAll('.choice-text').forEach(input => {
+          input.addEventListener('input', (e) => {
+            const sIdx = parseInt(input.getAttribute('data-scene-idx'), 10);
+            const cIdx = parseInt(input.getAttribute('data-choice-idx'), 10);
+            if (!isNaN(sIdx) && !isNaN(cIdx)) {
+              scenes[sIdx].choices[cIdx].text = e.target.value;
+              // Only update preview, do not re-render editor to avoid input reset
+              const previewChoices = document.getElementById('scene-preview-choices');
+              if (previewChoices && selectedScenePath && selectedScenePath[0] === sIdx) {
+                // Update the preview buttons' text directly
+                const btns = previewChoices.querySelectorAll('.preview-choice-btn');
+                if (btns && btns[cIdx]) {
+                  btns[cIdx].childNodes[0].textContent = e.target.value || '(No text)';
+                }
+              }
+            }
+          });
+        });
+        document.querySelectorAll('.choice-target').forEach(select => {
+          select.addEventListener('change', (e) => {
+            const sIdx = parseInt(select.getAttribute('data-scene-idx'), 10);
+            const cIdx = parseInt(select.getAttribute('data-choice-idx'), 10);
+            if (!isNaN(sIdx) && !isNaN(cIdx)) {
+              scenes[sIdx].choices[cIdx].target = select.value === '' ? null : parseInt(select.value);
+              // Re-render preview to reflect live change
+              if (selectedScenePath && selectedScenePath[0] === sIdx) {
+                renderEditor();
+              }
+            }
+          });
+        });
+      }, 0);
     }
 
-    addBlockBtn.addEventListener("click", () => {
-      const offset = 40 * blocks.length;
-      blocks.push({ title: "", text: "", selections: [], x: 60 + offset, y: 60 + offset });
-      renderBlocks();
-    });
+    function renderChoices(scene, sceneIdx) {
+      if (!scene.choices || scene.choices.length === 0) {
+        return '<p style="color: #666; font-style: italic;">No choices yet. Add choices to create branching paths.</p>';
+      }
+      return scene.choices.map((choice, choiceIdx) => {
+        // Dropdown for target scene
+        return `
+        <div class="choice-item">
+          <input type="text" class="choice-text" placeholder="Choice text" value="${choice.text || ''}"
+                 data-scene-idx="${sceneIdx}" data-choice-idx="${choiceIdx}">
+          <select class="choice-target" data-scene-idx="${sceneIdx}" data-choice-idx="${choiceIdx}">
+            <option value="">End story</option>
+            ${scenes.map((s, idx) => `<option value="${idx}" ${choice.target === idx ? 'selected' : ''}>Scene ${idx + 1}${s.title ? ': ' + s.title : ''}</option>`).join('')}
+          </select>
+          <button class="btn-small btn-danger" onclick="deleteChoice(${sceneIdx}, ${choiceIdx})">×</button>
+        </div>
+        `;
+      }).join('');
+    }
 
-    document.addEventListener("mousemove", (e) => {
-      if (dragInfo) {
-        const block = blocks[dragInfo.idx];
-        block.x = e.clientX - dragInfo.offsetX;
-        block.y = e.clientY - dragInfo.offsetY;
-        renderBlocks();
+    // Global functions for choice management
+    window.addChoice = function() {
+      if (!selectedScenePath || selectedScenePath.length !== 1) return;
+      const idx = selectedScenePath[0];
+      const scene = scenes[idx];
+      if (!scene) return;
+      if (!scene.choices) scene.choices = [];
+      // Find the insertion point: after the last scene that targets this scene as a choice
+      let insertAt = idx + 1;
+      // Find all scenes that are direct targets from this scene's choices
+      const targetIndices = (scene.choices || []).map(c => typeof c.target === 'number' ? c.target : -1).filter(i => i >= 0);
+      if (targetIndices.length > 0) {
+        // Insert after the last target
+        insertAt = Math.max(...targetIndices) + 1;
+        if (insertAt > scenes.length) insertAt = scenes.length;
       }
-      if (connectDrag) {
-        const canvasRect = blocksCanvas.getBoundingClientRect();
-        renderConnections(e.clientX - canvasRect.left, e.clientY - canvasRect.top);
-      }
-    });
-    document.addEventListener("mouseup", (e) => {
-      if (connectDrag) {
-        const canvasRect = blocksCanvas.getBoundingClientRect();
-        const mouseX = e.clientX - canvasRect.left;
-        const mouseY = e.clientY - canvasRect.top;
-        let foundTarget = null;
-        blocks.forEach((block, idx) => {
-          const blockDiv = blocksCanvas.querySelector(`.story-block[data-block-idx='${idx}']`);
-          if (!blockDiv) return;
-          const left = blockDiv.offsetLeft;
-          const top = blockDiv.offsetTop;
-          const right = left + blockDiv.offsetWidth;
-          const bottom = top + blockDiv.offsetHeight;
-          if (mouseX >= left && mouseX <= right && mouseY >= top && mouseY <= bottom) {
-            foundTarget = idx;
-          }
-        });
-        if (foundTarget !== null) {
-          blocks[connectDrag.blockIdx].selections[connectDrag.selIdx].target = foundTarget;
+      const newScene = { title: '', text: '', choices: [] };
+      scenes.splice(insertAt, 0, newScene);
+      // Update all choice targets that are >= insertAt (increment by 1)
+      scenes.forEach(s => {
+        if (s.choices) {
+          s.choices.forEach(choice => {
+            if (typeof choice.target === 'number' && choice.target >= insertAt) {
+              choice.target++;
+            }
+          });
         }
-        connectDrag = null;
-        renderConnections();
+      });
+      scene.choices.push({ text: '', target: insertAt });
+      renderEditor();
+      renderSidebar();
+    };
+
+    window.updateChoice = function(sceneIdx, choiceIdx, field, value) {
+      const scene = scenes[sceneIdx];
+      if (!scene || !scene.choices || !scene.choices[choiceIdx]) return;
+      if (field === 'text') {
+        scene.choices[choiceIdx].text = value;
+      } else if (field === 'target') {
+        scene.choices[choiceIdx].target = value === '' ? null : parseInt(value);
       }
-      dragInfo = null;
+    };
+
+    window.deleteChoice = function(sceneIdx, choiceIdx) {
+      const scene = scenes[sceneIdx];
+      if (!scene || !scene.choices) return;
+      scene.choices.splice(choiceIdx, 1);
+      renderEditor();
+      renderSidebar();
+    };
+
+    // Edit sub-scene for a choice
+    window.editSubScene = function(scenePathStr, choiceIndex) {
+      const path = JSON.parse(scenePathStr);
+      const scene = getSceneByPath(path);
+      if (!scene || !scene.choices || !scene.choices[choiceIndex] || !scene.choices[choiceIndex].subScene) return;
+      selectScene([...path, 'choices', choiceIndex, 'subScene']);
+    };
+
+    // Button event handlers
+    addSceneBtn.addEventListener('click', () => {
+      const newScene = { title: '', text: '', choices: [] };
+      scenes.push(newScene);
+      selectedScenePath = [scenes.length - 1];
+      renderSidebar();
+      renderEditor();
     });
 
-    renderBlocks();
-    renderSidebar();
-
-    cancelStoryBtn.addEventListener("click", () => {
-      window.location.href = "index.html";
+    deleteSceneBtn.addEventListener('click', () => {
+      if (!selectedScenePath || selectedScenePath.length !== 1) return;
+      if (!confirm('Delete this scene?')) return;
+      const idx = selectedScenePath[0];
+      scenes.splice(idx, 1);
+      // Remove all choices in all scenes that point to this scene
+      scenes.forEach(scene => {
+        if (scene.choices) {
+          scene.choices = scene.choices.filter(choice => choice.target !== idx);
+          // Decrement targets above the deleted idx
+          scene.choices.forEach(choice => {
+            if (typeof choice.target === 'number' && choice.target > idx) {
+              choice.target--;
+            }
+          });
+        }
+      });
+      selectedScenePath = null;
+      renderSidebar();
+      renderEditor();
     });
-
-    // Add Save Story button
-    const saveStoryBtn = document.createElement('button');
-    saveStoryBtn.id = 'save-story-btn';
-    saveStoryBtn.textContent = 'Save Story';
-    saveStoryBtn.style.marginTop = '0.7em';
-    saveStoryBtn.style.marginRight = '0.7em';
-    const saveAsStoryBtn = document.createElement('button');
-    saveAsStoryBtn.id = 'save-as-story-btn';
-    saveAsStoryBtn.textContent = 'Save As';
-    saveAsStoryBtn.style.marginTop = '0.7em';
-    saveAsStoryBtn.style.marginRight = '0.7em';
-    const mainContainer = document.querySelector('.container');
-    mainContainer.insertBefore(saveStoryBtn, document.getElementById('add-block-btn'));
-    mainContainer.insertBefore(saveAsStoryBtn, document.getElementById('add-block-btn'));
 
     saveStoryBtn.addEventListener('click', async () => {
-      let title = currentStoryTitle;
+      const title = storyTitleInput.value.trim();
       if (!title) {
-        title = prompt('Enter a title for your story:');
-        if (!title || !title.trim()) {
-          alert('Story not saved: title is required.');
-          return;
-        }
-        title = title.trim();
+        alert('Please enter a story title');
+        return;
       }
-      try {
-        await window.__TAURI__.core.invoke('save_story', {
-          title,
-          storyJson: JSON.stringify(blocks)
-        });
-        currentStoryTitle = title;
-        alert('Story saved successfully as "' + title + '"!');
-      } catch (e) {
-        alert('Failed to save story: ' + e);
-      }
-    });
-
-    saveAsStoryBtn.addEventListener('click', async () => {
-      const title = prompt('Enter a new title for your story:');
-      if (!title || !title.trim()) {
-        alert('Story not saved: title is required.');
+      if (scenes.length === 0) {
+        alert('Please add at least one scene');
         return;
       }
       try {
-        await window.__TAURI__.core.invoke('save_story', {
-          title: title.trim(),
-          storyJson: JSON.stringify(blocks)
-        });
-        currentStoryTitle = title.trim();
-        alert('Story saved as "' + title.trim() + '" successfully!');
+        await window.__TAURI__.core.invoke('save_story', { title, storyJson: JSON.stringify(scenes) });
+        currentStoryTitle = title;
+        alert('Story saved successfully!');
       } catch (e) {
         alert('Failed to save story: ' + e);
       }
     });
 
-    // Create modal for story list
-    const storyModal = document.createElement('div');
-    storyModal.id = 'story-modal';
-    storyModal.style.display = 'none';
-    storyModal.style.position = 'fixed';
-    storyModal.style.top = '0';
-    storyModal.style.left = '0';
-    storyModal.style.width = '100vw';
-    storyModal.style.height = '100vh';
-    storyModal.style.background = 'rgba(0,0,0,0.4)';
-    storyModal.style.justifyContent = 'center';
-    storyModal.style.alignItems = 'center';
-    storyModal.style.zIndex = '2000';
-    storyModal.innerHTML = `
-      <div id="story-modal-content" style="background:#fff;padding:2em;border-radius:10px;min-width:300px;max-width:90vw;max-height:80vh;overflow:auto;box-shadow:0 2px 10px rgba(0,0,0,0.2);position:relative;">
-        <button id="close-story-modal" style="position:absolute;top:8px;right:8px;font-size:1.2em;background:transparent;border:none;cursor:pointer;">✕</button>
-        <h2>Saved Stories</h2>
-        <ul id="story-list" style="list-style:none;padding:0;"></ul>
-      </div>
-    `;
-    document.body.appendChild(storyModal);
-
-    document.getElementById('close-story-modal').addEventListener('click', () => {
-      storyModal.style.display = 'none';
+    cancelStoryBtn.addEventListener('click', () => {
+      window.location.href = 'index.html';
     });
+
+    // Initialize the interface
+    renderSidebar();
+    renderEditor();
+
+
   }
 
   // Stories page logic (now for stories.html)
@@ -635,6 +667,15 @@ window.addEventListener("DOMContentLoaded", () => {
     const playTitle = params.get('title');
     let blocks = [];
     let currentIdx = 0;
+    // Player state for conditions
+    let playerState = {};
+    function checkConditions(conds) {
+      if (!conds) return true;
+      for (const key in conds) {
+        if (conds[key] !== playerState[key]) return false;
+      }
+      return true;
+    }
     function renderPlayer() {
       storyPlayerContainer.innerHTML = '';
       if (!blocks.length) {
@@ -642,25 +683,41 @@ window.addEventListener("DOMContentLoaded", () => {
         return;
       }
       const block = blocks[currentIdx];
+      // If this scene has conditions and they are not met, show locked message
+      if (block.conditions && !checkConditions(block.conditions)) {
+        storyPlayerContainer.innerHTML = '<div style="color:#c00;">This scene is locked. You do not meet the requirements.</div>';
+        return;
+      }
       const blockDiv = document.createElement('div');
       blockDiv.style.marginBottom = '1em';
       blockDiv.innerHTML = `<div style='font-weight:bold;font-size:1.1em;margin-bottom:0.5em;'>${block.title || 'Block ' + (currentIdx + 1)}</div><div style='margin-bottom:1em;'>${block.text || ''}</div>`;
       storyPlayerContainer.appendChild(blockDiv);
+      // Apply effects (e.g. set flags/traits) if present
+      if (block.effects && typeof block.effects === 'object') {
+        Object.assign(playerState, block.effects);
+      }
       if (block.selections && block.selections.length > 0) {
         block.selections.forEach((sel, selIdx) => {
-          const btn = document.createElement('button');
-          btn.textContent = sel.text || 'Choice ' + (selIdx + 1);
-          btn.style.marginRight = '0.5em';
-          btn.style.marginBottom = '0.5em';
-          btn.addEventListener('click', () => {
-            if (sel.target != null && blocks[sel.target]) {
-              currentIdx = sel.target;
-              renderPlayer();
-            } else {
-              alert('End of story or invalid target.');
-            }
-          });
-          storyPlayerContainer.appendChild(btn);
+          // Check if the target scene is available (conditions met)
+          let available = true;
+          if (sel.target != null && blocks[sel.target] && blocks[sel.target].conditions) {
+            available = checkConditions(blocks[sel.target].conditions);
+          }
+          if (available) {
+            const btn = document.createElement('button');
+            btn.textContent = sel.text || 'Choice ' + (selIdx + 1);
+            btn.style.marginRight = '0.5em';
+            btn.style.marginBottom = '0.5em';
+            btn.addEventListener('click', () => {
+              if (sel.target != null && blocks[sel.target]) {
+                currentIdx = sel.target;
+                renderPlayer();
+              } else {
+                alert('End of story or invalid target.');
+              }
+            });
+            storyPlayerContainer.appendChild(btn);
+          }
         });
       } else {
         const endDiv = document.createElement('div');
