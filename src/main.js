@@ -207,28 +207,24 @@ window.addEventListener("DOMContentLoaded", () => {
       deleteSceneBtn.style.display = 'block';
       // Layout: sidebar (left), preview (center), editor (right)
       editorContent.innerHTML = `
-        <div style="display: flex; flex-direction: row; width: 100vw; min-height: 70vh;">
-          <div id="scenes-list-sidebar" style="min-width:220px;max-width:260px;width:240px;background:#f4f4f8;border-right:1px solid #e0e0e0;padding:18px 0 0 0;overflow-y:auto;">
-            <!-- Sidebar will be rendered here by renderSidebar() -->
-          </div>
-          <div class="scene-preview" style="flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 24px 16px 24px;background:#fff;min-width:320px;max-width:700px;">
-            <div style="font-weight:bold;font-size:1.2em;margin-bottom:0.5em;">${scene.title || `Scene ${idx + 1}`}</div>
-            <div style="margin-bottom:1em;white-space:pre-line;max-width:600px;">${scene.text || ''}</div>
-            <div style="margin-bottom:0.5em;font-weight:600;">Choices:</div>
-            <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;" id="scene-preview-choices">
+        <div class="editor-layout">
+          <div class="scene-preview">
+            <div class="scene-preview-title">${scene.title || `Scene ${idx + 1}`}</div>
+            <div class="scene-preview-text">${scene.text || ''}</div>
+            <div class="scene-preview-choices-label">Choices:</div>
+            <div class="scene-preview-choices" id="scene-preview-choices">
               ${(scene.choices||[]).map((choice, cidx) => {
                 if (typeof choice.target === 'number' && scenes[choice.target]) {
-                  // Escape HTML for safety
-                  return `<button type='button' class='preview-choice-btn' data-target='${choice.target}' style='margin-bottom:0.3em;padding:0.4em 1.2em;border-radius:6px;border:1px solid #bbb;background:#f6f6fa;cursor:pointer;font-size:1em;'>${choice.text || '(No text)'}</button>`;
+                  return `<button type='button' class='preview-choice-btn' data-target='${choice.target}'>${choice.text || '(No text)'}</button>`;
                 } else {
-                  return `<button type='button' disabled style='margin-bottom:0.3em;padding:0.4em 1.2em;border-radius:6px;border:1px solid #bbb;background:#eee;cursor:not-allowed;font-size:1em;'>${choice.text || '(No text)'}</button>`;
+                  return `<button type='button' class='preview-choice-btn' disabled>${choice.text || '(No text)'}</button>`;
                 }
               }).join('')}
             </div>
-            <button id="preview-return-btn" style="margin-top:1.5em;padding:0.5em 1.5em;border-radius:6px;border:1px solid #bbb;background:#f0f0f8;cursor:pointer;font-size:1em;">Return</button>
-            <div style="margin-top:1em;color:#888;font-size:0.95em;">${scene.conditions ? `Conditions: <code>${JSON.stringify(scene.conditions)}</code>` : ''}</div>
+            <button id="preview-return-btn" class="preview-return-btn">Return</button>
+            <div class="scene-preview-conditions">${scene.conditions ? `Conditions: <code>${JSON.stringify(scene.conditions)}</code>` : ''}</div>
           </div>
-          <div class="scene-form" style="min-width:320px;max-width:400px;flex:0 0 350px;background:#f8f8fa;padding:18px 16px 16px 16px;border-radius:8px;box-shadow:0 1px 4px #0001;">
+          <div class="scene-form">
             <div class="form-group">
               <label class="form-label">Scene Title</label>
               <input type="text" class="form-input" id="scene-title-input" value="${scene.title || ''}" placeholder="Enter scene title...">
@@ -251,6 +247,18 @@ window.addEventListener("DOMContentLoaded", () => {
           </div>
         </div>
       `;
+      // Move sidebar content outside the preview/editor area
+      // Only declare sidebarContainer if not already declared in this scope
+      // Use let only if not already declared, otherwise just assign
+      // Remove all sidebarContainer redeclarations and use a unique variable name
+      const sidebarContainerEl = document.getElementById('scenes-list-sidebar');
+      if (sidebarContainerEl) {
+        sidebarContainerEl.innerHTML = '';
+        const oldScenesList = scenesList;
+        window.scenesList = sidebarContainerEl;
+        renderSidebar();
+        window.scenesList = oldScenesList;
+      }
       // Add event listener for preview return button
       setTimeout(() => {
         const returnBtn = document.getElementById('preview-return-btn');
