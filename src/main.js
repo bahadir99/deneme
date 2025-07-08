@@ -245,27 +245,27 @@ window.addEventListener("DOMContentLoaded", () => {
       // Layout: sidebar (left), preview (center), editor (right)
       editorContent.innerHTML = `
         <div style="display: flex; flex-direction: row; width: 100vw; min-height: 70vh;">
-          <div id="scenes-list-sidebar" style="min-width:220px;max-width:260px;width:240px;background:#f4f4f8;border-right:1px solid #e0e0e0;padding:18px 0 0 0;overflow-y:auto;">
+          <div id="scenes-list-sidebar" style="min-width:220px;max-width:260px;width:240px;background:var(--color-bg);border-right:1px solid var(--color-border);padding:18px 0 0 0;overflow-y:auto;">
             <!-- Sidebar will be rendered here by renderSidebar() -->
           </div>
-          <div class="scene-preview" style="flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 24px 16px 24px;background:#fff;min-width:320px;max-width:700px;">
-            <div style="font-weight:bold;font-size:1.2em;margin-bottom:0.5em;">${scene.title || `Scene ${idx + 1}`}</div>
-            <div style="margin-bottom:1em;white-space:pre-line;max-width:600px;">${scene.text || ''}</div>
-            <div style="margin-bottom:0.5em;font-weight:600;">Choices:</div>
+          <div class="scene-preview" style="flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 24px 16px 24px;background:var(--color-bg-alt);min-width:320px;max-width:700px;">
+            <div style="font-weight:bold;font-size:1.2em;margin-bottom:0.5em;color:var(--color-text);">${scene.title || `Scene ${idx + 1}`}</div>
+            <div style="margin-bottom:1em;white-space:pre-line;max-width:600px;color:var(--color-text);">${scene.text || ''}</div>
+            <div style="margin-bottom:0.5em;font-weight:600;color:var(--color-text);">Choices:</div>
             <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;" id="scene-preview-choices">
               ${(scene.choices||[]).map((choice, cidx) => {
                 if (typeof choice.target === 'number' && scenes[choice.target]) {
                   // Escape HTML for safety
-                  return `<button type='button' class='preview-choice-btn' data-target='${choice.target}' style='margin-bottom:0.3em;padding:0.4em 1.2em;border-radius:6px;border:1px solid #bbb;background:#f6f6fa;cursor:pointer;font-size:1em;'>${choice.text || '(No text)'}</button>`;
+                  return `<button type='button' class='preview-choice-btn' data-target='${choice.target}' style='margin-bottom:0.3em;padding:0.4em 1.2em;border-radius:6px;border:1px solid var(--color-border);background:var(--color-choice-bg);color:var(--color-text);cursor:pointer;font-size:1em;'>${choice.text || '(No text)'}</button>`;
                 } else {
-                  return `<button type='button' disabled style='margin-bottom:0.3em;padding:0.4em 1.2em;border-radius:6px;border:1px solid #bbb;background:#eee;cursor:not-allowed;font-size:1em;'>${choice.text || '(No text)'}</button>`;
+                  return `<button type='button' disabled style='margin-bottom:0.3em;padding:0.4em 1.2em;border-radius:6px;border:1px solid var(--color-border);background:var(--color-bg);color:var(--color-muted);cursor:not-allowed;font-size:1em;'>${choice.text || '(No text)'}</button>`;
                 }
               }).join('')}
             </div>
-            <button id="preview-return-btn" style="margin-top:1.5em;padding:0.5em 1.5em;border-radius:6px;border:1px solid #bbb;background:#f0f0f8;cursor:pointer;font-size:1em;">Return</button>
-            <div style="margin-top:1em;color:#888;font-size:0.95em;">${scene.conditions ? `Conditions: <code>${JSON.stringify(scene.conditions)}</code>` : ''}</div>
+            <button id="preview-return-btn" style="margin-top:1.5em;padding:0.5em 1.5em;border-radius:6px;border:1px solid var(--color-border);background:var(--color-bg);color:var(--color-text);cursor:pointer;font-size:1em;">Return</button>
+            <div style="margin-top:1em;color:var(--color-muted);font-size:0.95em;">${scene.conditions ? `Conditions: <code>${JSON.stringify(scene.conditions)}</code>` : ''}</div>
           </div>
-          <div class="scene-form" style="min-width:320px;max-width:400px;flex:0 0 350px;background:#f8f8fa;padding:18px 16px 16px 16px;border-radius:8px;box-shadow:0 1px 4px #0001;">
+          <div class="scene-form" style="min-width:320px;max-width:400px;flex:0 0 350px;background:var(--color-bg);padding:18px 16px 16px 16px;border-radius:8px;box-shadow:0 1px 4px #0001;">
             <div class="form-group">
               <label class="form-label">Scene Title</label>
               <input type="text" class="form-input" id="scene-title-input" value="${scene.title || ''}" placeholder="Enter scene title...">
