@@ -1,20 +1,28 @@
 .logo.vanilla:hover {
   filter: drop-shadow(0 0 2em #ffe21c);
 }
+
 :root {
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
-
   color: #0f0f0f;
   background-color: #f6f6f6;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+}
+
+html.light-mode, :root.light-mode {
+  color: #0f0f0f;
+  background-color: #f6f6f6;
+}
+html.dark-mode, :root.dark-mode {
+  color: #f6f6f6;
+  background-color: #2f2f2f;
 }
 
 .container {
@@ -58,6 +66,7 @@ h1 {
   text-align: center;
 }
 
+
 input,
 button {
   border-radius: 8px;
@@ -66,8 +75,8 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
+  color: inherit;
+  background-color: inherit;
   transition: border-color 0.25s;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
@@ -93,16 +102,15 @@ button {
   margin-right: 5px;
 }
 
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light-mode):not(.dark-mode) {
     color: #f6f6f6;
     background-color: #2f2f2f;
   }
-
   a:hover {
     color: #24c8db;
   }
-
   input,
   button {
     color: #ffffff;

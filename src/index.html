@@ -9,6 +9,14 @@
   </head>
 
   <body>
+    <div style="position: absolute; top: 1em; right: 1em; z-index: 1000;">
+      <label for="theme-select" style="font-weight: bold; color: var(--color-text); margin-right: 0.5em;">Theme:</label>
+      <select id="theme-select" style="padding: 0.3em 0.7em; border-radius: 4px; border: 1px solid var(--color-border); background: var(--color-bg-alt); color: var(--color-text);">
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
     <main class="container">
       <h1>Welcome to Tauri</h1>
       <div class="main-menu">
@@ -34,19 +42,64 @@
       "
     >
       <div
+        id="exit-modal-content"
         style="
-          background: #fff;
+          background: var(--color-bg-alt);
+          color: var(--color-text);
           padding: 2em;
           border-radius: 10px;
           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
           min-width: 250px;
           text-align: center;
+          border: 1px solid var(--color-border);
         "
       >
-        <p>Are you sure you want to exit?</p>
-        <button id="exit-yes-btn">Yes</button>
-        <button id="exit-no-btn">No</button>
+        <p style="color: var(--color-text);">Are you sure you want to exit?</p>
+        <button id="exit-yes-btn" style="background: var(--color-danger); color: var(--color-text-light); border: 1px solid var(--color-danger); border-radius: 4px; padding: 0.5em 1em; margin-right: 0.5em;">Yes</button>
+        <button id="exit-no-btn" style="background: var(--color-secondary); color: var(--color-text-light); border: 1px solid var(--color-secondary); border-radius: 4px; padding: 0.5em 1em;">No</button>
       </div>
     </div>
+    <script>
+      // Theme switching logic (shared for all pages)
+      function applyTheme(theme) {
+        document.documentElement.classList.remove('light-mode', 'dark-mode');
+        if (theme === 'light') {
+          document.documentElement.classList.add('light-mode');
+        } else if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+        // If 'system', do nothing (let media query handle it)
+      }
+
+      function getSavedTheme() {
+        return localStorage.getItem('theme-mode') || 'system';
+      }
+
+      function setSavedTheme(theme) {
+        localStorage.setItem('theme-mode', theme);
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        const select = document.getElementById('theme-select');
+        if (select) {
+          const saved = getSavedTheme();
+          select.value = saved;
+          applyTheme(saved);
+          select.addEventListener('change', function () {
+            setSavedTheme(this.value);
+            applyTheme(this.value);
+          });
+          // Listen to system theme changes if "system" is selected
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if (getSavedTheme() === 'system') {
+              applyTheme('system');
+            }
+          });
+        } else {
+          // If selector not present, still apply theme on every page
+          applyTheme(getSavedTheme());
+        }
+      });
+    </script>
   </body>
 </html>

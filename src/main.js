@@ -1,4 +1,41 @@
 window.addEventListener("DOMContentLoaded", () => {
+  // THEME SWITCHING LOGIC (applies to all pages)
+  function applyTheme(theme) {
+    document.documentElement.classList.remove('light-mode', 'dark-mode');
+    if (theme === 'light') {
+      document.documentElement.classList.add('light-mode');
+    } else if (theme === 'dark') {
+      document.documentElement.classList.add('dark-mode');
+    }
+    // If 'system', do nothing (let media query handle it)
+  }
+
+  function getSavedTheme() {
+    return localStorage.getItem('theme-mode') || 'system';
+  }
+
+  function setSavedTheme(theme) {
+    localStorage.setItem('theme-mode', theme);
+  }
+
+  const select = document.getElementById('theme-select');
+  if (select) {
+    const saved = getSavedTheme();
+    select.value = saved;
+    applyTheme(saved);
+    select.addEventListener('change', function () {
+      setSavedTheme(this.value);
+      applyTheme(this.value);
+    });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+      if (getSavedTheme() === 'system') {
+        applyTheme('system');
+      }
+    });
+  } else {
+    // If selector not present, still apply theme on every page
+    applyTheme(getSavedTheme());
+  }
   // Exit modal logic (should always run if present)
   const exitModal = document.getElementById("exit-modal");
   const exitYesBtn = document.getElementById("exit-yes-btn");
