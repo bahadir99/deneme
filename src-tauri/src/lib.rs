@@ -1,9 +1,51 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+use meval::Expr;
+use regex::Regex;
 use sanitize_filename;
-
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::str::FromStr;
 use tauri::path;
 use tauri::AppHandle;
 use tauri::Manager;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum DegerTuru {
+    Bool,
+    Integer { min: Option<i32>, max: Option<i32> },
+    Float { min: Option<f64>, max: Option<f64> },
+    Text,
+}
+
+pub fn hesapla(formul: &str, degiskenler: &HashMap<String, f64>) -> Result<f64, String> {
+    // %y → (y / 100)
+    let re = Regex::new(r"%([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
+    let expr = re.replace_all(formul, "($1 / 100)").to_string();
+
+    // Boşlukları kaldır
+    let expr = expr.replace(" ", "");
+
+    // Parse the expression
+    let expr = Expr::from_str(&expr).map_err(|e| e.to_string())?;
+
+    // Evaluate with variables
+    expr.eval_with_context(degiskenler)
+        .map_err(|e| e.to_string())
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MechanicsVar {
+    pub name: String,
+    pub description: String,
+    pub var_type: DegerTuru,
+    pub formula: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MechanicsTemplate {
+    pub name: String,
+    pub variables: Vec<MechanicsVar>,
+}
 
 #[tauri::command]
 fn exit_app(app: AppHandle) {

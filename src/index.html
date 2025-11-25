@@ -9,22 +9,112 @@
   </head>
 
   <body>
-    <div style="position: absolute; top: 1em; right: 1em; z-index: 1000;">
-      <label for="theme-select" style="font-weight: bold; color: var(--color-text); margin-right: 0.5em;">Theme:</label>
-      <select id="theme-select" style="padding: 0.3em 0.7em; border-radius: 4px; border: 1px solid var(--color-border); background: var(--color-bg-alt); color: var(--color-text);">
+    <div style="position: absolute; top: 1em; right: 1em; z-index: 1000">
+      <label
+        for="theme-select"
+        style="font-weight: bold; color: var(--color-text); margin-right: 0.5em"
+        >Theme:</label
+      >
+      <select
+        id="theme-select"
+        style="
+          padding: 0.3em 0.7em;
+          border-radius: 4px;
+          border: 1px solid var(--color-border);
+          background: var(--color-bg-alt);
+          color: var(--color-text);
+        "
+      >
         <option value="system">System</option>
         <option value="light">Light</option>
         <option value="dark">Dark</option>
       </select>
     </div>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
-      <div class="main-menu">
-        <button id="manage-stories-btn">Manage Stories</button>
-        <button id="play-story-btn">Play a Story</button>
-        <button id="exit-btn">Exit</button>
+
+    <div class="main-layout">
+      <!-- Sol Sidebar -->
+      <div class="sidebar-menu">
+        <div class="sidebar-header">
+          <h2>Menu</h2>
+        </div>
+        <div class="sidebar-options">
+          <button id="stories-btn" class="sidebar-btn">Stories</button>
+          <button id="mechanics-template-btn" class="sidebar-btn">
+            Mechanics Template
+          </button>
+          <button id="mechanics-btn" class="sidebar-btn">Mechanics</button>
+          <button id="character-template-btn" class="sidebar-btn">
+            Character Template
+          </button>
+          <button id="play-story-btn" class="sidebar-btn">Play a Story</button>
+          <button id="exit-btn" class="sidebar-btn">Exit</button>
+        </div>
       </div>
-    </main>
+
+      <!-- Ana İçerik Alanı -->
+      <div class="main-content-area">
+        <!-- Welcome Section (default view) -->
+        <div id="welcome-section" class="welcome-section">
+          <h1>Welcome to Tauri</h1>
+          <p>Select an option from the sidebar to get started.</p>
+        </div>
+
+        <!-- Stories Section (hidden by default) -->
+        <div id="stories-section" class="content-section" style="display: none">
+          <div class="section-header">
+            <h1>Stories</h1>
+          </div>
+          <div id="stories-list-container">
+            <ul id="stories-list" style="list-style: none; padding: 0"></ul>
+          </div>
+          <div class="section-actions">
+            <button id="create-new-story-btn" type="button" class="action-btn">
+              Create New Story
+            </button>
+            <button id="import-story-btn" type="button" class="action-btn">
+              Import Story
+            </button>
+          </div>
+        </div>
+        <!-- Mechanics Template Section (hidden by default) -->
+        <div
+          id="mechanics-template-section"
+          class="content-section"
+          style="display: none"
+        >
+          <div class="section-header">
+            <h1>Mechanics Templates</h1>
+          </div>
+          <div id="mechanics-template-list-container">
+            <table id="mechanics-template-table-header">
+              <thead>
+                <tr>
+                  <th style="width: 70%">Name</th>
+                  <th style="width: 30%">Actions</th>
+                </tr>
+              </thead>
+            </table>
+            <div
+              id="mechanics-template-table-body-wrapper"
+              style="height: 600px; overflow-y: auto; width: 100%"
+            >
+              <table id="mechanics-template-table-body" style="width: 100%">
+                <tbody id="mechanics-template-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="section-actions">
+            <button
+              id="create-mechanics-template-btn"
+              type="button"
+              class="action-btn"
+            >
+              New Mechanics Template
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div
       id="exit-modal"
@@ -54,47 +144,138 @@
           border: 1px solid var(--color-border);
         "
       >
-        <p style="color: var(--color-text);">Are you sure you want to exit?</p>
-        <button id="exit-yes-btn" style="background: var(--color-danger); color: var(--color-text-light); border: 1px solid var(--color-danger); border-radius: 4px; padding: 0.5em 1em; margin-right: 0.5em;">Yes</button>
-        <button id="exit-no-btn" style="background: var(--color-secondary); color: var(--color-text-light); border: 1px solid var(--color-secondary); border-radius: 4px; padding: 0.5em 1em;">No</button>
+        <p style="color: var(--color-text)">Are you sure you want to exit?</p>
+        <button
+          id="exit-yes-btn"
+          style="
+            background: var(--color-danger);
+            color: var(--color-text-light);
+            border: 1px solid var(--color-danger);
+            border-radius: 4px;
+            padding: 0.5em 1em;
+            margin-right: 0.5em;
+          "
+        >
+          Yes
+        </button>
+        <button
+          id="exit-no-btn"
+          style="
+            background: var(--color-secondary);
+            color: var(--color-text-light);
+            border: 1px solid var(--color-secondary);
+            border-radius: 4px;
+            padding: 0.5em 1em;
+          "
+        >
+          No
+        </button>
       </div>
+    </div>
+    <div id="mechanics-template-editor-modal">
+      <div class="modal-content">
+        <h2>Edit Mechanics Template</h2>
+        <div style="margin-bottom: 1em">
+          <label
+            for="mechanics-template-name-input"
+            style="display: block; margin-bottom: 0.5em"
+            >Name</label
+          >
+          <input
+            id="mechanics-template-name-input"
+            type="text"
+            style="
+              width: 100%;
+              padding: 0.5em;
+              border: 1px solid var(--color-border);
+              border-radius: 4px;
+            "
+          />
+        </div>
+        <div style="margin-bottom: 1.5em; text-align: left">
+          <h3 style="margin-bottom: 0.5em">Variables</h3>
+          <table
+            id="mechanics-template-variables-table"
+            style="width: 100%; border-collapse: collapse; margin-bottom: 0.5em"
+          >
+            <thead>
+              <tr>
+                <th style="width: 25%">Name</th>
+                <th style="width: 20%">Type</th>
+                <th style="width: 20%">Range</th>
+                <th style="width: 25%">Formula</th>
+                <th style="width: 10%">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="mechanics-template-variables-tbody"></tbody>
+          </table>
+          <button
+            id="add-mechanics-variable-btn"
+            class="action-btn"
+            type="button"
+          >
+            Add Variable
+          </button>
+        </div>
+        <div style="display: flex; gap: 1em; justify-content: center">
+          <button id="mechanics-template-save-btn" class="action-btn">
+            Save
+          </button>
+          <button
+            id="mechanics-template-cancel-btn"
+            class="action-btn"
+            style="
+              background: var(--color-secondary);
+              color: var(--color-text-light);
+              border-color: var(--color-secondary);
+            "
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="choice-editor-modal">
+      <div class="choice-modal-content" id="choice-editor-modal-content"></div>
     </div>
     <script>
       // Theme switching logic (shared for all pages)
       function applyTheme(theme) {
-        document.documentElement.classList.remove('light-mode', 'dark-mode');
-        if (theme === 'light') {
-          document.documentElement.classList.add('light-mode');
-        } else if (theme === 'dark') {
-          document.documentElement.classList.add('dark-mode');
+        document.documentElement.classList.remove("light-mode", "dark-mode");
+        if (theme === "light") {
+          document.documentElement.classList.add("light-mode");
+        } else if (theme === "dark") {
+          document.documentElement.classList.add("dark-mode");
         }
         // If 'system', do nothing (let media query handle it)
       }
 
       function getSavedTheme() {
-        return localStorage.getItem('theme-mode') || 'system';
+        return localStorage.getItem("theme-mode") || "system";
       }
 
       function setSavedTheme(theme) {
-        localStorage.setItem('theme-mode', theme);
+        localStorage.setItem("theme-mode", theme);
       }
 
-      document.addEventListener('DOMContentLoaded', function () {
-        const select = document.getElementById('theme-select');
+      document.addEventListener("DOMContentLoaded", function () {
+        const select = document.getElementById("theme-select");
         if (select) {
           const saved = getSavedTheme();
           select.value = saved;
           applyTheme(saved);
-          select.addEventListener('change', function () {
+          select.addEventListener("change", function () {
             setSavedTheme(this.value);
             applyTheme(this.value);
           });
           // Listen to system theme changes if "system" is selected
-          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-            if (getSavedTheme() === 'system') {
-              applyTheme('system');
-            }
-          });
+          window
+            .matchMedia("(prefers-color-scheme: dark)")
+            .addEventListener("change", (e) => {
+              if (getSavedTheme() === "system") {
+                applyTheme("system");
+              }
+            });
         } else {
           // If selector not present, still apply theme on every page
           applyTheme(getSavedTheme());

@@ -46,7 +46,6 @@
       }
 
       .sidebar {
-        width: 300px;
         background: var(--color-bg);
         border-right: 1px solid var(--color-border);
         display: flex;
@@ -75,13 +74,6 @@
         border-bottom-color: var(--color-accent);
       }
 
-      .scenes-explorer {
-        flex: 1;
-        overflow-y: auto;
-        padding: 1em;
-        background: var(--color-bg);
-      }
-
       .scenes-title {
         font-weight: bold;
         color: var(--color-muted);
@@ -94,8 +86,10 @@
       /* New styles for tree view */
       .scenes-list {
         list-style: none;
-        padding: 0;
+        padding: 1em;
         margin: 0;
+        height: 75vh;
+        overflow-y: auto;
       }
 
       .scenes-list ul {
@@ -117,7 +111,11 @@
 
       .scene-item:hover {
         background: #e9ecef;
-        background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg) 90%);
+        background: color-mix(
+          in srgb,
+          var(--color-primary) 10%,
+          var(--color-bg) 90%
+        );
       }
 
       .scene-item.active {
@@ -182,37 +180,26 @@
         background: var(--color-bg-alt);
       }
 
-      .add-scene-btn {
-        width: 100%;
-        background: var(--color-success);
-        color: var(--color-text-light);
-        border: none;
-        padding: 0.5em;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.9em;
-      }
-
-      .add-scene-btn:hover {
-        background: var(--color-success-dark);
-      }
-
       .main-content {
         flex: 1;
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         background: var(--color-bg-alt);
+        min-width: 0;
+        justify-content: flex-end; /* Ensure editor is at the far right */
       }
-
-      .editor-header {
-        padding: 1em;
-        border-bottom: 1px solid var(--color-border);
-        background: var(--color-bg);
+      .preview-column {
+        flex: 1 1 0;
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
         align-items: center;
+        justify-content: center;
+        padding: 2em 2em 2em 2em;
+        background: var(--color-bg-alt);
+        min-width: 320px;
+        max-width: 100%;
+        margin-bottom: 60px;
       }
-
       .editor-title {
         font-weight: bold;
         color: var(--color-text);
@@ -224,9 +211,19 @@
       }
 
       .editor-content {
-        flex: 1;
-        padding: 2em;
+        flex: 1 1 auto;
+        width: 100%;
+        padding: 0;
         overflow-y: auto;
+        overflow-x: hidden;
+        min-width: 0;
+        max-width: none;
+        margin: 0 0 0vh;
+        height: 80vh;
+        background: none;
+        display: flex;
+
+        flex-direction: row;
       }
 
       .empty-editor {
@@ -278,89 +275,6 @@
         resize: vertical;
         background: var(--color-bg);
         color: var(--color-text);
-      }
-
-      .choices-section {
-        margin-top: 2em;
-        padding-top: 1em;
-        border-top: 1px solid #eee;
-      }
-
-      .choices-title {
-        font-weight: bold;
-        margin-bottom: 1em;
-        color: var(--color-text);
-      }
-
-      .choice-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5em;
-        margin-bottom: 0.8em;
-        padding: 0.8em;
-        background: var(--color-choice-bg);
-        border-radius: 4px;
-        border: 1px solid var(--color-choice-border);
-      }
-
-      .choice-text {
-        flex: 1;
-        padding: 0.4em;
-        border: 1px solid var(--color-border);
-        border-radius: 4px;
-        font-size: 0.9em;
-        background: var(--color-bg);
-        color: var(--color-text);
-      }
-
-      .choice-target {
-        width: 150px;
-        padding: 0.4em;
-        border: 1px solid var(--color-border);
-        border-radius: 4px;
-        font-size: 0.9em;
-        background: var(--color-bg);
-        color: var(--color-text);
-      }
-
-      .btn-small {
-        padding: 0.3em 0.6em;
-        font-size: 0.8em;
-        border-radius: 4px;
-        border: 1px solid var(--color-border);
-        background: var(--color-bg-alt);
-        color: var(--color-text);
-        cursor: pointer;
-      }
-
-      .btn-small:hover {
-        background: #f0f0f0;
-        background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-alt) 90%);
-      }
-
-      .btn-danger {
-        background: var(--color-danger);
-        color: var(--color-text-light);
-        border-color: var(--color-danger);
-      }
-
-      .btn-danger:hover {
-        background: var(--color-danger-dark);
-      }
-
-      .add-choice-btn {
-        background: var(--color-success);
-        color: var(--color-text-light);
-        border: 1px solid var(--color-success);
-        padding: 0.5em 1em;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.9em;
-        margin-top: 0.5em;
-      }
-
-      .add-choice-btn:hover {
-        background: var(--color-success-dark);
       }
 
       .global-actions {
@@ -422,7 +336,8 @@
         --color-choice-border: #333a40;
         --color-empty: #b0b8c1;
       }
-      .dark-mode html, .dark-mode body {
+      .dark-mode html,
+      .dark-mode body {
         background: var(--color-bg);
         color: var(--color-text);
       }
@@ -449,7 +364,8 @@
         --color-choice-border: #e9ecef;
         --color-empty: #666;
       }
-      .light-mode html, .light-mode body {
+      .light-mode html,
+      .light-mode body {
         background: var(--color-bg);
         color: var(--color-text);
       }
@@ -478,6 +394,10 @@
           --color-empty: #b0b8c1;
         }
       }
+      .sidebar-tab.active {
+        border-bottom: 2px solid var(--color-primary) !important;
+        background: var(--color-bg-alt);
+      }
     </style>
   </head>
   <body>
@@ -494,55 +414,904 @@
           />
         </div>
 
-        <div class="scenes-explorer">
+        <!-- Tab Navigation -->
+        <div
+          class="sidebar-tabs"
+          style="display: flex; border-bottom: 1px solid var(--color-border)"
+        >
+          <button
+            id="tab-scenes"
+            class="sidebar-tab active"
+            style="
+              flex: 1;
+              border: none;
+              background: var(--color-bg);
+              padding: 0.7em;
+              cursor: pointer;
+              font-weight: bold;
+              border-bottom: 2px solid var(--color-primary);
+            "
+          >
+            Scenes
+          </button>
+          <button
+            id="tab-characters"
+            class="sidebar-tab"
+            style="
+              flex: 1;
+              border: none;
+              background: var(--color-bg);
+              padding: 0.7em;
+              cursor: pointer;
+              font-weight: bold;
+            "
+          >
+            Characters
+          </button>
+          <button
+            id="tab-global-variables"
+            class="sidebar-tab"
+            style="
+              flex: 1;
+              border: none;
+              background: var(--color-bg);
+              padding: 0.7em;
+              cursor: pointer;
+              font-weight: bold;
+            "
+          >
+            Global Variables
+          </button>
+          <button
+            id="tab-inventory"
+            class="sidebar-tab"
+            style="
+              flex: 1;
+              border: none;
+              background: var(--color-bg);
+              padding: 0.7em;
+              cursor: pointer;
+              font-weight: bold;
+            "
+          >
+            Inventory
+          </button>
+        </div>
+
+        <!-- Scenes Explorer -->
+        <div class="scenes-explorer sidebar-tab-content" id="scenes-explorer">
           <div class="scenes-title">Scenes</div>
-          <ul id="scenes-list" class="scenes-list">
-            <div class="empty-editor">
-              <p>No scenes yet. Click "Add Scene" to start!</p>
-            </div>
-          </ul>
-        </div>
-
-        <div class="sidebar-actions">
-          <button id="add-scene-btn" class="add-scene-btn">+ Add Scene</button>
-        </div>
-      </div>
-
-      <!-- Main Content Area -->
-      <div class="main-content">
-        <div class="editor-header">
-          <div class="editor-title" id="editor-title">
-            Select a scene to edit
+          <div
+            id="scenes-list-empty"
+            class="empty-editor"
+            style="display: none"
+          >
+            <p>No scenes yet. Click "Add Scene" to start!</p>
           </div>
-          <div class="editor-actions">
-            <button
-              id="delete-scene-btn"
-              class="btn-small btn-danger"
-              style="display: none"
-            >
-              Delete Scene
+          <ul id="scenes-list" class="scenes-list"></ul>
+          <div class="sidebar-bottom-btn">
+            <button id="add-scene-btn" class="add-scene-btn">
+              + Add Scene
             </button>
           </div>
         </div>
 
-        <div class="editor-content" id="editor-content">
-          <div class="empty-editor">
-            <h3>Welcome to Story Creator</h3>
-            <p>
-              Select a scene from the sidebar to start editing, or create a new
-              scene to begin your story.
-            </p>
+        <!-- Characters Explorer (initially hidden) -->
+        <div
+          class="characters-explorer sidebar-tab-content"
+          id="characters-explorer"
+          style="display: none"
+        >
+          <div class="scenes-title">Characters</div>
+          <div id="characters-list-empty" class="empty-editor">
+            <p>No characters yet. Click "Add Character" to start!</p>
+          </div>
+          <ul id="characters-list" class="scenes-list"></ul>
+          <div class="sidebar-bottom-btn">
+            <button id="add-character-btn" class="add-scene-btn">
+              + Add Character
+            </button>
           </div>
         </div>
 
-        <div class="global-actions">
-          <button id="save-story-btn" class="btn-primary">Save Story</button>
-          <button id="cancel-story-btn" class="btn-secondary">
-            Back to Menu
+        <!-- Global Variables Explorer (initially hidden) -->
+        <div
+          class="global-variables-explorer sidebar-tab-content"
+          id="global-variables-explorer"
+          style="display: none"
+        >
+          <div class="scenes-title">Global Variables</div>
+          <div id="global-variables-list-empty" class="empty-editor">
+            <p>No global variables yet. Click "Add Variable" to start!</p>
+          </div>
+          <ul id="global-variables-list" class="scenes-list"></ul>
+          <div class="sidebar-bottom-btn">
+            <button id="add-global-variable-btn" class="add-scene-btn">
+              + Add Variable
+            </button>
+          </div>
+        </div>
+
+        <!-- Inventory Explorer (hidden by default) -->
+        <div
+          class="inventory-explorer sidebar-tab-content"
+          id="inventory-explorer"
+          style="display: none"
+        >
+          <div class="inventory-entities">
+            <div class="inventory-section-title">Available Holders</div>
+            <div id="inventory-holder-list" class="inventory-holder-list">
+              <div class="inventory-placeholder">
+                Inventory disabled. Enable below to configure holders.
+              </div>
+            </div>
+          </div>
+          <div class="inventory-sidebar-divider"></div>
+          <div class="inventory-mode-selector" id="inventory-mode-selector">
+            <div class="inventory-mode-header">
+              <h3>Inventory Mode</h3>
+              <p>Select who can carry items in this story.</p>
+            </div>
+            <label class="inventory-mode-option">
+              <input
+                type="radio"
+                name="inventory-mode"
+                value="disabled"
+                checked
+              />
+              <span>
+                <strong>Disabled</strong>
+                <small>Inventory features are turned off.</small>
+              </span>
+            </label>
+            <label class="inventory-mode-option">
+              <input type="radio" name="inventory-mode" value="player" />
+              <span>
+                <strong>Player Only</strong>
+                <small>Only the player has an inventory.</small>
+              </span>
+            </label>
+            <label class="inventory-mode-option">
+              <input type="radio" name="inventory-mode" value="all" />
+              <span>
+                <strong>Player & Characters</strong>
+                <small>Player and characters can manage items.</small>
+              </span>
+            </label>
+          </div>
+          <div class="inventory-side-panel">
+            <div class="inventory-section-title">Equip Slots</div>
+            <div
+              id="inventory-equip-slot-list"
+              class="inventory-equip-slot-list"
+            >
+              <div
+                id="inventory-equip-slot-empty"
+                class="inventory-placeholder"
+              >
+                Define equip slots (e.g., Ring, Helmet) to limit how many items
+                of a type can be equipped.
+              </div>
+            </div>
+            <button
+              id="inventory-add-equip-slot-btn"
+              class="btn-small btn-secondary"
+              type="button"
+            >
+              + Add Equip Slot
+            </button>
+            <form
+              id="inventory-equip-slot-form"
+              class="inventory-equip-slot-form"
+              style="display: none"
+            >
+              <div class="inventory-field-group">
+                <label
+                  class="inventory-field-label"
+                  for="inventory-equip-slot-name"
+                  >Slot Name</label
+                >
+                <input
+                  type="text"
+                  id="inventory-equip-slot-name"
+                  class="inventory-field-input"
+                  placeholder="e.g., Ring, Helmet"
+                />
+              </div>
+              <div class="inventory-field-group">
+                <label
+                  class="inventory-field-label"
+                  for="inventory-equip-slot-capacity"
+                  >Max Equipped</label
+                >
+                <input
+                  type="number"
+                  id="inventory-equip-slot-capacity"
+                  class="inventory-field-input"
+                  min="1"
+                  value="1"
+                />
+              </div>
+              <div class="inventory-equip-slot-form-actions">
+                <button
+                  type="button"
+                  id="inventory-equip-slot-save-btn"
+                  class="btn-small btn-primary"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  id="inventory-equip-slot-cancel-btn"
+                  class="btn-small"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  id="inventory-equip-slot-delete-btn"
+                  class="btn-small btn-danger"
+                  style="margin-left: auto"
+                >
+                  Delete
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Remove sidebar-actions, as buttons are now in their respective tabs -->
+      </div>
+
+      <!-- Main Content Area -->
+      <div class="main-content">
+        <div class="preview-column" id="preview-column">
+          <!-- Preview content will be rendered here by JS -->
+        </div>
+        <!-- Trait Mechanics and Character Variables Template (shown when Characters tab is active) -->
+        <div
+          id="characters-config-section"
+          class="characters-config-section"
+          style="
+            display: none;
+            flex: 1;
+            padding: 2em;
+            overflow-y: scroll;
+            max-width: 800px;
+          "
+        >
+          <div style="margin-bottom: 2em">
+            <h2
+              style="
+                font-size: 1.3em;
+                margin-bottom: 0.5em;
+                color: var(--color-text);
+              "
+            >
+              Traits and Skills
+            </h2>
+            <div
+              style="
+                padding: 0.5em;
+                margin-bottom: 1em;
+                background: var(--color-choice-bg);
+                border-radius: 4px;
+                font-size: 0.9em;
+                color: var(--color-muted);
+              "
+            >
+              Create and configure traits and skills. Define how they affect
+              character variables. Use formulas like "5", "health * 0.1", or
+              "strength + 2".
+            </div>
+            <div
+              id="trait-mechanics-list"
+              style="margin-bottom: 1em; max-height: 400px; overflow-y: auto"
+            ></div>
+            <div style="margin-bottom: 1em">
+              <button id="add-trait-mechanic-btn" class="btn-small btn-primary">
+                + Add Trait or Skill
+              </button>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 2em">
+            <h2
+              style="
+                font-size: 1.3em;
+                margin-bottom: 0.5em;
+                color: var(--color-text);
+              "
+            >
+              Character Variables Template
+            </h2>
+            <div
+              style="
+                padding: 0.5em;
+                margin-bottom: 1em;
+                background: var(--color-choice-bg);
+                border-radius: 4px;
+                font-size: 0.9em;
+                color: var(--color-muted);
+              "
+            >
+              Define variables that all characters will have. Each character can
+              have different values.
+            </div>
+            <div
+              id="character-variables-template-list"
+              style="margin-bottom: 1em; max-height: 300px; overflow-y: auto"
+            ></div>
+            <div style="margin-bottom: 1em">
+              <button
+                id="add-character-variable-template-btn"
+                class="btn-small btn-primary"
+              >
+                + Add Variable to Template
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          id="inventory-workspace"
+          class="inventory-workspace"
+          style="display: none"
+        >
+          <div
+            id="inventory-mode-banner"
+            class="inventory-banner inventory-banner--warning"
+            style="display: none"
+          >
+            Inventory is disabled. Enable it in the sidebar to manage items.
+          </div>
+          <div class="inventory-panels">
+            <div class="inventory-panel inventory-panel--items">
+              <div class="inventory-panel-header">
+                <h2>Item Library</h2>
+                <button
+                  id="inventory-add-item-btn"
+                  type="button"
+                  class="btn-small btn-primary"
+                >
+                  + New Item
+                </button>
+              </div>
+              <div
+                id="inventory-item-list"
+                class="inventory-item-list"
+                aria-label="Item library"
+                role="list"
+              >
+                <div class="inventory-placeholder">
+                  No items yet. Create one to get started.
+                </div>
+              </div>
+            </div>
+            <div class="inventory-panel inventory-panel--details">
+              <div class="inventory-panel-header">
+                <h2>Item Details</h2>
+                <button
+                  id="inventory-delete-item-btn"
+                  type="button"
+                  class="btn-small btn-danger"
+                  style="display: none"
+                >
+                  Delete
+                </button>
+              </div>
+              <div id="inventory-item-empty" class="inventory-placeholder">
+                Select or create an item to edit its properties.
+              </div>
+              <form
+                id="inventory-item-form"
+                class="inventory-item-form"
+                style="display: none"
+              >
+                <div class="inventory-field-group">
+                  <label class="inventory-field-label" for="inventory-item-name"
+                    >Name</label
+                  >
+                  <input
+                    id="inventory-item-name"
+                    type="text"
+                    class="inventory-field-input"
+                    placeholder="Name of the item"
+                  />
+                </div>
+                <div class="inventory-field-group">
+                  <label
+                    class="inventory-field-label"
+                    for="inventory-item-category"
+                    >Category</label
+                  >
+                  <input
+                    id="inventory-item-category"
+                    type="text"
+                    class="inventory-field-input"
+                    placeholder="Weapons, Potions, Quest, etc."
+                  />
+                </div>
+                <div class="inventory-field-group">
+                  <label class="inventory-field-label" for="inventory-item-type"
+                    >Type</label
+                  >
+                  <select
+                    id="inventory-item-type"
+                    class="inventory-field-input"
+                  >
+                    <option value="equippable">Equippable</option>
+                    <option value="consumable">Consumable</option>
+                    <option value="misc">Miscellaneous</option>
+                  </select>
+                </div>
+                <div
+                  class="inventory-field-group"
+                  id="inventory-item-slot-group"
+                  style="display: none"
+                >
+                  <label class="inventory-field-label" for="inventory-item-slot"
+                    >Equip Slot</label
+                  >
+                  <select
+                    id="inventory-item-slot"
+                    class="inventory-field-input"
+                  >
+                    <option value="">Select slot...</option>
+                  </select>
+                </div>
+                <div class="inventory-field-group">
+                  <label
+                    class="inventory-field-label"
+                    for="inventory-item-rarity"
+                    >Rarity</label
+                  >
+                  <select
+                    id="inventory-item-rarity"
+                    class="inventory-field-input"
+                  >
+                    <option value="common">Common</option>
+                    <option value="uncommon">Uncommon</option>
+                    <option value="rare">Rare</option>
+                    <option value="epic">Epic</option>
+                    <option value="legendary">Legendary</option>
+                    <option value="unique">Unique</option>
+                  </select>
+                </div>
+                <div class="inventory-field-group inventory-field-group--wide">
+                  <label
+                    class="inventory-field-label"
+                    for="inventory-item-description"
+                    >Description</label
+                  >
+                  <textarea
+                    id="inventory-item-description"
+                    class="inventory-field-input"
+                    rows="3"
+                    placeholder="Flavor text or story notes for this item"
+                  ></textarea>
+                </div>
+                <div class="inventory-field-group inventory-field-group--wide">
+                  <label
+                    class="inventory-field-label"
+                    for="inventory-item-condition"
+                    >Availability Condition</label
+                  >
+                  <textarea
+                    id="inventory-item-condition"
+                    class="inventory-field-input"
+                    rows="3"
+                    placeholder="Describe when this item becomes available (JSON or rules, builder coming soon)"
+                  ></textarea>
+                </div>
+                <div class="inventory-field-group">
+                  <label
+                    class="inventory-field-label"
+                    for="inventory-item-usage-cost"
+                    >Usage Cost</label
+                  >
+                  <input
+                    id="inventory-item-usage-cost"
+                    type="text"
+                    class="inventory-field-input"
+                    placeholder="e.g. consumes action, 5 mana, etc."
+                  />
+                </div>
+                <div class="inventory-field-group inventory-field-group--wide">
+                  <label
+                    class="inventory-field-label"
+                    for="inventory-item-stats"
+                    >Stats / Effects</label
+                  >
+                  <textarea
+                    id="inventory-item-stats"
+                    class="inventory-field-input"
+                    rows="3"
+                    placeholder="List stat changes or scripted effects"
+                  ></textarea>
+                </div>
+                <div class="inventory-field-group">
+                  <label
+                    class="inventory-field-label"
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 0.5em;
+                      cursor: pointer;
+                    "
+                  >
+                    <input
+                      type="checkbox"
+                      id="inventory-item-stackable"
+                      style="width: 16px; height: 16px; cursor: pointer"
+                    />
+                    <span>Stackable</span>
+                  </label>
+                </div>
+                <div
+                  class="inventory-field-group"
+                  id="inventory-item-max-stack-group"
+                  style="display: none"
+                >
+                  <label
+                    class="inventory-field-label"
+                    for="inventory-item-max-stack"
+                    >Max Stack Amount</label
+                  >
+                  <input
+                    type="number"
+                    id="inventory-item-max-stack"
+                    class="inventory-field-input"
+                    min="1"
+                    value="99"
+                    placeholder="99"
+                  />
+                </div>
+              </form>
+            </div>
+            <div class="inventory-panel inventory-panel--inventory">
+              <div class="inventory-panel-header">
+                <h2>Inventory Preview</h2>
+                <div id="inventory-holder-meta" class="inventory-holder-meta">
+                  Inventory
+                </div>
+              </div>
+              <div class="inventory-assignment-toolbar">
+                <select
+                  id="inventory-add-item-select"
+                  class="inventory-field-input"
+                  aria-label="Select item to add"
+                  disabled
+                >
+                  <option value="">Select item...</option>
+                </select>
+                <button
+                  id="inventory-assign-btn"
+                  type="button"
+                  class="btn-small btn-primary"
+                  disabled
+                >
+                  Add Item
+                </button>
+              </div>
+              <div
+                id="inventory-slot-list"
+                class="inventory-slot-list"
+                aria-label="Holder inventory"
+              >
+                <div class="inventory-placeholder" data-empty-holder>
+                  Enable inventory and assign items to manage this holder's
+                  equipment.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="divider" id="editor-divider"></div>
+        <div class="editor-column" id="editor-column">
+          <!-- Move editor-header to the top -->
+          <div class="editor-header">
+            <div class="editor-title" id="editor-title">
+              Select a scene to edit
+            </div>
+            <div class="editor-actions">
+              <button
+                id="delete-scene-btn"
+                class="btn-small btn-danger"
+                style="display: none"
+              >
+                Delete Scene
+              </button>
+              <!-- Character delete button, hidden by default -->
+              <button
+                id="delete-character-btn"
+                class="btn-small btn-danger"
+                style="display: none"
+              >
+                Delete Character
+              </button>
+            </div>
+          </div>
+          <!-- Character editor, hidden by default -->
+          <form
+            id="character-editor"
+            class="scene-form scrollable-panel"
+            style="display: none"
+          >
+            <div class="form-group">
+              <label class="form-label" for="character-name-input">Name</label>
+              <input
+                type="text"
+                id="character-name-input"
+                class="form-input"
+                placeholder="Name"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="character-gender-input"
+                >Gender (Identity)</label
+              >
+              <select id="character-gender-input" class="form-input">
+                <option value="">Select...</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Non-binary">Non-binary</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="character-bio-gender-input"
+                >Biological Gender</label
+              >
+              <select id="character-bio-gender-input" class="form-input">
+                <option value="">Select...</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Intersex">Intersex</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="character-tags-input"
+                >Tags (comma-separated)</label
+              >
+              <input
+                type="text"
+                id="character-tags-input"
+                class="form-input"
+                placeholder="Tags (comma-separated)"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Traits and Skills</label>
+              <div
+                style="
+                  margin-bottom: 0.5em;
+                  padding: 0.5em;
+                  background: var(--color-choice-bg);
+                  border-radius: 4px;
+                  font-size: 0.9em;
+                  color: var(--color-muted);
+                "
+              >
+                Select traits and skills from the list. Create and configure
+                them in the middle section.
+              </div>
+              <div
+                id="character-traits-list"
+                style="
+                  margin-bottom: 0.5em;
+                  display: flex;
+                  flex-wrap: wrap;
+                  align-items: center;
+                "
+              ></div>
+              <select
+                id="character-trait-select"
+                class="form-input"
+                style="margin-top: 0.5em"
+              >
+                <option value="">Select a trait or skill to add...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Character Variables</label>
+              <div
+                style="
+                  margin-bottom: 0.5em;
+                  padding: 0.5em;
+                  background: var(--color-choice-bg);
+                  border-radius: 4px;
+                  font-size: 0.9em;
+                  color: var(--color-muted);
+                "
+              >
+                Variables are defined in the template. Each character has
+                individual values. Trait effects are applied automatically.
+              </div>
+              <div
+                id="character-variables-list"
+                style="margin-bottom: 0.5em"
+              ></div>
+            </div>
+          </form>
+          <div class="editor-content" id="editor-content">
+            <div class="empty-editor">
+              <h3>Welcome to Story Creator</h3>
+              <p>
+                Select a scene from the sidebar to start editing, or create a
+                new scene to begin your story.
+              </p>
+            </div>
+          </div>
+          <div class="global-actions">
+            <button id="save-story-btn" class="btn-primary">Save Story</button>
+            <button id="cancel-story-btn" class="btn-secondary">
+              Back to Menu
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Remove the custom preview-wrapper and preview card CSS -->
+    </div>
+
+    <div id="choice-editor-modal">
+      <div class="choice-modal-content" id="choice-editor-modal-content"></div>
+    </div>
+
+    <!-- Trait Editor Modal -->
+    <div
+      id="trait-mechanic-editor-modal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.55);
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+      "
+    >
+      <div
+        class="modal-content"
+        style="
+          background: var(--color-bg-alt);
+          color: var(--color-text);
+          padding: 2em 2.2em;
+          border-radius: 12px;
+          width: min(640px, 92vw);
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+          border: 1px solid var(--color-border);
+        "
+      >
+        <h2 style="margin-top: 0; margin-bottom: 1.5em">Edit Trait or Skill</h2>
+        <div class="form-group">
+          <label class="form-label">Trait or Skill Name</label>
+          <input
+            type="text"
+            id="trait-mechanic-editor-name"
+            class="form-input"
+            placeholder="Trait or skill name"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea
+            id="trait-mechanic-editor-description"
+            class="form-textarea"
+            placeholder="Trait or skill description"
+            style="min-height: 80px"
+          ></textarea>
+        </div>
+        <div
+          class="form-group"
+          style="display: flex; align-items: center; gap: 0.5em"
+        >
+          <input
+            type="checkbox"
+            id="trait-mechanic-editor-active"
+            style="width: 16px; height: 16px"
+          />
+          <label
+            class="form-label"
+            for="trait-mechanic-editor-active"
+            style="margin: 0"
+            >Active</label
+          >
+        </div>
+        <div id="trait-mechanic-editor-active-fields" style="display: none">
+          <div class="form-group">
+            <label class="form-label">Usage Costs</label>
+            <div
+              style="
+                margin-bottom: 0.5em;
+                padding: 0.5em;
+                background: var(--color-choice-bg);
+                border-radius: 4px;
+                font-size: 0.85em;
+                color: var(--color-muted);
+              "
+            >
+              Define resources spent when activating this trait or skill.
+            </div>
+            <div
+              id="trait-mechanic-editor-usage-costs-list"
+              style="margin-bottom: 0.5em"
+            ></div>
+            <button
+              type="button"
+              id="trait-mechanic-editor-add-cost-btn"
+              class="btn-small btn-primary"
+            >
+              + Add Cost
+            </button>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Conditions</label>
+            <textarea
+              id="trait-mechanic-editor-conditions"
+              class="form-textarea"
+              placeholder="Describe any conditions required to use this trait or skill"
+              style="min-height: 60px"
+            ></textarea>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Effects</label>
+          <div
+            style="
+              margin-bottom: 0.5em;
+              padding: 0.5em;
+              background: var(--color-choice-bg);
+              border-radius: 4px;
+              font-size: 0.9em;
+              color: var(--color-muted);
+            "
+          >
+            Define how this trait or skill affects character variables.
+          </div>
+          <div
+            id="trait-mechanic-editor-effects-list"
+            style="margin-bottom: 0.5em"
+          ></div>
+          <button
+            type="button"
+            id="trait-mechanic-editor-add-effect-btn"
+            class="btn-small btn-primary"
+          >
+            + Add Effect
+          </button>
+        </div>
+        <div
+          style="
+            display: flex;
+            gap: 1em;
+            justify-content: center;
+            margin-top: 2em;
+          "
+        >
+          <button
+            type="button"
+            id="trait-mechanic-editor-save-btn"
+            class="btn-primary"
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            id="trait-mechanic-editor-cancel-btn"
+            class="btn-secondary"
+          >
+            Cancel
           </button>
         </div>
       </div>
     </div>
+
     <!-- Theme logic is now global, removed from here -->
   </body>
 </html>
